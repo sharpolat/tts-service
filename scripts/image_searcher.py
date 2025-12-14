@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Автоматический поиск картинок для видео сегментов
-Использует Bing Image Search (полностью бесплатный через scraping)
+Использует Google Images (лучший поиск, бесплатно)
 """
 
 import sys
@@ -14,9 +14,9 @@ import re
 import time
 
 
-def search_bing_images(query, max_results=10):
+def search_google_images(query, max_results=10):
     """
-    Поиск через Bing Images - полностью бесплатно через scraping
+    Поиск через Google Images - лучший поиск, бесплатно
     """
     try:
         headers = {
@@ -27,42 +27,45 @@ def search_bing_images(query, max_results=10):
 
         params = {
             'q': query,
-            'first': 1,
-            'count': max_results,
-            'qft': '+filterui:photo-photo',  # только фото
+            'tbm': 'isch',  # image search
+            'hl': 'en',
+            'gl': 'us',
         }
 
-        url = f"https://www.bing.com/images/search?{urlencode(params)}"
+        url = f"https://www.google.com/search?{urlencode(params)}"
 
         response = requests.get(url, headers=headers, timeout=15)
         response.raise_for_status()
 
-        soup = BeautifulSoup(response.text, 'html.parser')
-
         images = []
 
-        # Ищем JSON с данными картинок
-        for a_tag in soup.find_all('a', class_='iusc'):
+        # Ищем JSON данные в скриптах
+        matches = re.findall(r'\["(https://[^"]+?)",(\d+),(\d+)\]', response.text)
+
+        for match in matches[:max_results * 3]:  # Берём с запасом
+            img_url = match[0]
+
+            # Фильтруем Google служебные картинки
+            if 'gstatic' in img_url or 'google' in img_url:
+                continue
+
+            # Убираем экранирование
+            img_url = img_url.replace('\\u003d', '=').replace('\\u0026', '&')
+
+            images.append({
+                'url': img_url,
+                'thumb': img_url,
+                'author': 'Google Images',
+                'source': 'google'
+            })
+
             if len(images) >= max_results:
                 break
-
-            m_attr = a_tag.get('m')
-            if m_attr:
-                try:
-                    data = json.loads(m_attr)
-                    images.append({
-                        'url': data.get('murl', ''),
-                        'thumb': data.get('turl', ''),
-                        'author': 'Bing Images',
-                        'source': 'bing'
-                    })
-                except:
-                    continue
 
         return images
 
     except Exception as e:
-        print(f"Ошибка поиска Bing: {str(e)}", file=sys.stderr)
+        print(f"Ошибка поиска Google: {str(e)}", file=sys.stderr)
         return []
 
 
@@ -165,9 +168,9 @@ def search_images(query, pexels_key=None, pixabay_key=None, per_source=10):
     """
     all_images = []
 
-    # Bing Images - полностью бесплатно, без лимитов
-    bing_results = search_bing_images(query, per_source)
-    all_images.extend(bing_results)
+    # Google Images - лучший поиск, самая большая база
+    google_results = search_google_images(query, per_source)
+    all_images.extend(google_results)
 
     return all_images
 
