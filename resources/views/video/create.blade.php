@@ -114,6 +114,11 @@
                     <strong>Аудио:</strong> <a href="{{ asset($ttsHistory->audio_file) }}" target="_blank">Прослушать</a>
                 </p>
 
+                <div style="margin: 15px 0; padding: 10px; background: #fff; border: 2px inset #fff;">
+                    <strong style="font-size: 12px;">Исходный текст:</strong>
+                    <p style="font-size: 11px; margin-top: 5px; line-height: 1.5;">{{ $ttsHistory->text }}</p>
+                </div>
+
                 <h2 style="font-size: 14px; margin: 15px 0 10px;">
                     AI создал {{ count($aiSegments) }} сегментов с поисковыми запросами:
                 </h2>

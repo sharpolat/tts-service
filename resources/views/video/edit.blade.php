@@ -146,9 +146,14 @@
 
             <h1>Подбор картинок для сегментов</h1>
 
-            <p style="font-size: 11px; margin-bottom: 15px;">
+            <p style="font-size: 11px; margin-bottom: 10px;">
                 <strong>Аудио:</strong> <a href="{{ asset($project->ttsHistory->audio_file) }}" target="_blank">Прослушать</a>
             </p>
+
+            <div style="margin: 15px 0; padding: 10px; background: #fff; border: 2px inset #fff;">
+                <strong style="font-size: 12px;">Исходный текст:</strong>
+                <p style="font-size: 11px; margin-top: 5px; line-height: 1.5;">{{ $project->ttsHistory->text }}</p>
+            </div>
 
             <form action="{{ route('video.update', $project->id) }}" method="POST">
                 @csrf
