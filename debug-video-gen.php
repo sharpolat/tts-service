@@ -77,4 +77,59 @@ if (!$result->successful()) {
     die("\n❌ Audio splitter failed\n");
 }
 
-echo "\n✓ Audio splitter succeeded\n";
+echo "\n✓ Audio splitter succeeded\n\n";
+
+// Parse audio segments result
+$audioResult = json_decode($result->output(), true);
+if (!isset($audioResult['segments'])) {
+    die("❌ No segments in audio result\n");
+}
+
+// Test video generator
+echo "=== Testing Video Generator ===\n";
+$videoGeneratorScript = base_path('scripts/video_generator.py');
+echo "Generator script: $videoGeneratorScript\n";
+echo "Generator exists: " . (file_exists($videoGeneratorScript) ? 'YES' : 'NO') . "\n\n";
+
+// Prepare video generation data
+$videoData = [
+    'segments' => [],
+    'output_file' => $videoFile,
+];
+
+foreach ($audioResult['segments'] as $index => $audioSegment) {
+    $segment = $project->videoSegments->where('order', $index)->first();
+    if (!$segment) {
+        die("❌ Missing segment at order $index\n");
+    }
+
+    $videoData['segments'][] = [
+        'image_url' => $segment->image_url,
+        'audio_file' => $audioSegment['file'],
+        'duration' => $audioSegment['duration'],
+        'order' => $audioSegment['order'],
+    ];
+}
+
+$jsonInput = json_encode($videoData);
+$command = [
+    $pythonBin,
+    $videoGeneratorScript,
+    $jsonInput
+];
+
+echo "Command: " . implode(' ', array_map('escapeshellarg', $command)) . "\n\n";
+echo "Input JSON:\n" . json_encode($videoData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES) . "\n\n";
+
+$result = \Illuminate\Support\Facades\Process::timeout(300)->run($command);
+
+echo "Exit code: " . $result->exitCode() . "\n";
+echo "Output:\n" . $result->output() . "\n";
+echo "Errors:\n" . $result->errorOutput() . "\n";
+
+if (!$result->successful()) {
+    die("\n❌ Video generator failed\n");
+}
+
+echo "\n✓ Video generator succeeded\n";
+echo "Video file: $videoFile\n";
