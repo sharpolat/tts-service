@@ -176,7 +176,7 @@
                             </p>
                         @endif
 
-                        @if($segment->image_options && count($segment->image_options) > 0)
+                        @if($segment->image_options && is_array($segment->image_options) && count($segment->image_options) > 0)
                             <div class="form-group">
                                 <label>Выберите картинку (отметьте галочкой):</label>
                                 <div style="display: flex; gap: 10px; margin-top: 10px;">

@@ -85,7 +85,7 @@ class ProcessVideoSegments implements ShouldQueue
                         $options = array_slice($resultData['images'], 0, 3);
 
                         $segment->update([
-                            'image_options' => json_encode($options),
+                            'image_options' => $options,  // Laravel автоматически преобразует в JSON
                             'image_url' => $options[0]['url'] ?? null  // Первая выбрана по умолчанию
                         ]);
                     }
