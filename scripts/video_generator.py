@@ -157,10 +157,11 @@ def create_video_from_segments(data):
 
         # Создаем видео клип из картинки и аудио
         try:
-            image_clip = ImageClip(str(image_path)).set_duration(segment['duration'])
+            # MoviePy 2.x API: используем with_duration вместо set_duration
+            image_clip = ImageClip(str(image_path)).with_duration(segment['duration'])
             audio_clip = AudioFileClip(segment['audio_file'])
 
-            video_clip = image_clip.set_audio(audio_clip)
+            video_clip = image_clip.with_audio(audio_clip)
             video_clips.append(video_clip)
         except Exception as e:
             print(f"Ошибка создания клипа {segment['order']}: {e}", file=sys.stderr)
