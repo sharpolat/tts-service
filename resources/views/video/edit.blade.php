@@ -125,6 +125,13 @@
             background: #ffffe0;
             border-color: #000;
         }
+
+        .alert-info {
+            background: #add8e6;
+            border-color: #000080;
+            color: #000080;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -141,6 +148,12 @@
             @if(session('success'))
                 <div class="alert alert-success">
                     {{ session('success') }}
+                </div>
+            @endif
+
+            @if(session('info'))
+                <div class="alert alert-info">
+                    {{ session('info') }}
                 </div>
             @endif
 

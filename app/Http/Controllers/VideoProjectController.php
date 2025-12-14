@@ -107,6 +107,9 @@ class VideoProjectController extends Controller
 
         $project->update(['status' => 'processing']);
 
+        // Показываем пользователю что началась генерация
+        session()->flash('info', 'Генерация видео началась... Пожалуйста подождите 1-2 минуты.');
+
         // Подготавливаем данные сегментов
         $segmentsData = $project->videoSegments->map(function ($segment) {
             return [
