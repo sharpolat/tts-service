@@ -178,8 +178,9 @@ def search_for_segments(segments, pexels_key=None, pixabay_key=None):
     segments: [{'text': '...', 'search_query': '...', 'order': 0}, ...]
     """
     results = []
+    used_urls = set()  # Отслеживаем использованные URL для разнообразия
 
-    for segment in segments:
+    for i, segment in enumerate(segments):
         search_query = segment.get('search_query', '')
 
         if not search_query:
@@ -187,14 +188,32 @@ def search_for_segments(segments, pexels_key=None, pixabay_key=None):
             words = segment['text'].split()[:3]
             search_query = ' '.join(words)
 
-        images = search_images(search_query, pexels_key, pixabay_key, per_source=5)
+        # Ищем больше картинок чтобы было из чего выбрать
+        images = search_images(search_query, pexels_key, pixabay_key, per_source=15)
+
+        # Фильтруем уже использованные картинки
+        unique_images = []
+        for img in images:
+            if img['url'] not in used_urls:
+                unique_images.append(img)
+                if len(unique_images) >= 5:  # Оставляем топ-5 уникальных
+                    break
+
+        # Выбираем картинку с индексом, зависящим от позиции сегмента
+        # Это даст разные картинки для разных сегментов
+        selected_image = None
+        if unique_images:
+            # Берём разные позиции: 0, 1, 2, 0, 1, 2...
+            index = i % min(3, len(unique_images))
+            selected_image = unique_images[index]['url']
+            used_urls.add(selected_image)
 
         segment_result = {
             'order': segment.get('order', 0),
             'text': segment['text'],
             'search_query': search_query,
-            'images': images,
-            'selected_image': images[0]['url'] if images else None
+            'images': unique_images,
+            'selected_image': selected_image
         }
 
         results.append(segment_result)

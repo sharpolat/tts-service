@@ -20,17 +20,36 @@ def analyze_with_ollama(text, model="qwen2.5:14b"):
     """
 
     prompt = f"""Проанализируй следующий текст и разбей его на смысловые сегменты для создания видео.
+
 Для каждого сегмента создай:
 1. Текст сегмента (1-2 предложения)
-2. Поисковый запрос для картинки (НА АНГЛИЙСКОМ, простое описание для поиска фото)
-3. Эмоциональный тон (neutral/happy/sad/dramatic/action)
+2. Поисковый запрос для картинки на АНГЛИЙСКОМ языке
+3. Эмоциональный тон
+
+ВАЖНЫЕ ПРАВИЛА для search_query:
+- Запрос должен ТОЧНО описывать ВИЗУАЛЬНОЕ содержание сегмента
+- Используй конкретные объекты, персонажей, места, действия
+- НЕ используй абстрактные понятия (hatred, goal, purpose)
+- Описывай то, что можно УВИДЕТЬ на фото
+- Делай запросы РАЗНООБРАЗНЫМИ для каждого сегмента
+- Каждый запрос должен быть УНИКАЛЬНЫМ
+
+ПРИМЕРЫ:
+❌ ПЛОХО: "itachi sasuke hatred" (hatred - абстрактное понятие)
+✅ ХОРОШО: "itachi uchiha standing alone dark background"
+
+❌ ПЛОХО: "naruto goal"
+✅ ХОРОШО: "naruto training waterfall landscape"
+
+❌ ПЛОХО: "tokyo night"
+✅ ХОРОШО: "tokyo shibuya crossing night neon lights"
 
 Верни ответ СТРОГО в JSON формате:
 [
   {{
     "text": "текст сегмента",
-    "search_query": "english search query for image",
-    "tone": "эмоциональный тон",
+    "search_query": "detailed visual english description",
+    "tone": "neutral/happy/sad/dramatic/action",
     "order": 0
   }}
 ]
@@ -38,7 +57,6 @@ def analyze_with_ollama(text, model="qwen2.5:14b"):
 Текст для анализа:
 {text}
 
-ВАЖНО: search_query должен быть на английском языке, простые слова (например: "naruto itachi young", "tokyo night", "forest mountain").
 Верни только JSON, без дополнительного текста."""
 
     try:
