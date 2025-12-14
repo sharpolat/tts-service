@@ -12,6 +12,7 @@ class VideoProject extends Model
         'segments',
         'video_file',
         'status',
+        'quality',
     ];
 
     protected $casts = [

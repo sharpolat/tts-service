@@ -7,6 +7,7 @@
 import sys
 import json
 import os
+import base64
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
 
@@ -148,18 +149,38 @@ def create_video_from_segments(data):
     video_clips = []
 
     for segment in segments:
-        # Скачиваем картинку
+        # Скачиваем или сохраняем картинку
         image_path = temp_dir / f"image_{segment['order']}.jpg"
+        image_url = segment['image_url']
 
-        if not download_image(segment['image_url'], image_path):
-            print(f"Пропускаем сегмент {segment['order']} - не удалось скачать картинку")
-            continue
+        # Проверяем если это base64
+        if image_url.startswith('data:image'):
+            try:
+                # Извлекаем base64 данные
+                header, encoded = image_url.split(',', 1)
+                image_data = base64.b64decode(encoded)
+
+                with open(image_path, 'wb') as f:
+                    f.write(image_data)
+            except Exception as e:
+                print(f"Ошибка сохранения base64 картинки {segment['order']}: {e}", file=sys.stderr)
+                continue
+        else:
+            # Обычный URL - скачиваем
+            if not download_image(image_url, image_path):
+                print(f"Пропускаем сегмент {segment['order']} - не удалось скачать картинку")
+                continue
 
         # Создаем видео клип из картинки и аудио
         try:
             # MoviePy 2.x API: используем with_duration вместо set_duration
             image_clip = ImageClip(str(image_path)).with_duration(segment['duration'])
             audio_clip = AudioFileClip(segment['audio_file'])
+
+            # Resize to target resolution if provided
+            target_width = data.get('width', 1280)
+            target_height = data.get('height', 720)
+            image_clip = image_clip.resized(width=target_width, height=target_height)
 
             video_clip = image_clip.with_audio(audio_clip)
             video_clips.append(video_clip)

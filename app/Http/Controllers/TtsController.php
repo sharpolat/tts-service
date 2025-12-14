@@ -13,8 +13,7 @@ class TtsController extends Controller
         $history = TtsHistory::whereNull('parent_id')
             ->with('versions')
             ->orderBy('created_at', 'desc')
-            ->limit(10)
-            ->get();
+            ->paginate(10);
         return view('tts.index', compact('history'));
     }
 

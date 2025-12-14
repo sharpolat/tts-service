@@ -298,6 +298,11 @@
                     </div>
                 @endforeach
             </div>
+
+            <!-- Пагинация -->
+            <div style="margin-top: 20px; padding: 10px; text-align: center;">
+                {{ $history->links() }}
+            </div>
         @endif
         </div>
     </div>

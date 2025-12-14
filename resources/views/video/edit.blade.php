@@ -205,7 +205,7 @@
                         @if($segment->image_options && is_array($segment->image_options) && count($segment->image_options) > 0)
                             <div class="form-group">
                                 <label>Выберите картинку (отметьте галочкой):</label>
-                                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                <div style="display: flex; gap: 10px; margin-top: 10px; flex-wrap: wrap;">
                                     @foreach($segment->image_options as $index => $option)
                                         <label style="cursor: pointer; border: 2px solid #999; padding: 5px; background: #fff;">
                                             <input type="radio"
@@ -217,6 +217,24 @@
                                                  alt="Вариант {{ $index + 1 }}">
                                         </label>
                                     @endforeach
+
+                                    <!-- Своя картинка -->
+                                    <label style="cursor: pointer; border: 2px dashed #999; padding: 5px; background: #f0f0f0; min-width: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
+                                        <input type="radio"
+                                               name="segments[{{ $loop->parent->index }}][image_url]"
+                                               value=""
+                                               class="custom-image-radio"
+                                               data-segment="{{ $loop->parent->index }}">
+                                        <input type="file"
+                                               accept="image/*"
+                                               class="custom-image-upload"
+                                               data-segment="{{ $loop->parent->index }}"
+                                               style="display: none;">
+                                        <div style="text-align: center; font-size: 10px; color: #666;">
+                                            📤 Загрузить<br>свою картинку
+                                        </div>
+                                        <img class="custom-image-preview" data-segment="{{ $loop->parent->index }}" style="display: none; max-width: 150px; max-height: 150px; margin-top: 5px;" alt="Своя картинка">
+                                    </label>
                                 </div>
                             </div>
                         @else
@@ -246,6 +264,17 @@
 
             <form action="{{ route('video.generate', $project->id) }}" method="POST">
                 @csrf
+                <div style="margin-bottom: 10px;">
+                    <label style="font-size: 11px; display: block; margin-bottom: 5px;">
+                        <strong>Качество видео:</strong>
+                    </label>
+                    <select name="quality" style="padding: 5px; font-size: 11px; border: 2px inset #fff; background: #fff;">
+                        <option value="480p" {{ ($project->quality ?? '720p') === '480p' ? 'selected' : '' }}>480p (SD)</option>
+                        <option value="720p" {{ ($project->quality ?? '720p') === '720p' ? 'selected' : '' }}>720p (HD)</option>
+                        <option value="1080p" {{ ($project->quality ?? '720p') === '1080p' ? 'selected' : '' }}>1080p (Full HD)</option>
+                        <option value="1440p" {{ ($project->quality ?? '720p') === '1440p' ? 'selected' : '' }}>1440p (2K)</option>
+                    </select>
+                </div>
                 <button type="submit" class="btn-generate" onclick="return confirm('Создать видео из всех сегментов?');">
                     ГЕНЕРИРОВАТЬ ВИДЕО
                 </button>
@@ -253,9 +282,13 @@
 
             @if($project->video_file)
                 <div style="margin-top: 15px; padding: 10px; background: #fff; border: 2px inset #fff;">
-                    <strong>Готовое видео:</strong>
-                    <a href="{{ asset($project->video_file) }}" target="_blank">Просмотреть</a> |
-                    <a href="{{ asset($project->video_file) }}" download>Скачать</a>
+                    <strong>Готовое видео:</strong><br>
+                    <video controls style="max-width: 100%; margin: 10px 0; border: 2px solid #000;">
+                        <source src="{{ asset($project->video_file) }}" type="video/mp4">
+                        Ваш браузер не поддерживает видео.
+                    </video>
+                    <br>
+                    <a href="{{ asset($project->video_file) }}" download style="padding: 5px 10px; background: #c0c0c0; border: 2px outset #fff; text-decoration: none; display: inline-block;">💾 Скачать видео</a>
                 </div>
             @endif
         </div>
@@ -319,6 +352,41 @@
                         this.disabled = false;
                         this.textContent = '🔄 Найти';
                     });
+                });
+            });
+
+            // Обработчик загрузки своих картинок
+            document.querySelectorAll('.custom-image-upload').forEach(input => {
+                const segmentIndex = input.dataset.segment;
+                const label = input.closest('label');
+                const preview = label.querySelector('.custom-image-preview');
+                const radio = label.querySelector('.custom-image-radio');
+
+                // Клик по label открывает file input
+                label.addEventListener('click', (e) => {
+                    if (e.target !== radio && e.target !== input) {
+                        e.preventDefault();
+                        input.click();
+                    }
+                });
+
+                // При выборе файла
+                input.addEventListener('change', (e) => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = (event) => {
+                            // Показываем превью
+                            preview.src = event.target.result;
+                            preview.style.display = 'block';
+                            label.querySelector('div').style.display = 'none';
+
+                            // Выбираем radio и устанавливаем значение в base64
+                            radio.checked = true;
+                            radio.value = event.target.result;
+                        };
+                        reader.readAsDataURL(file);
+                    }
                 });
             });
         });

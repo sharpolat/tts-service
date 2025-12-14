@@ -105,7 +105,12 @@ class VideoProjectController extends Controller
             return back()->withErrors(['error' => 'Не все сегменты имеют картинки!']);
         }
 
-        $project->update(['status' => 'processing']);
+        // Сохраняем качество
+        $quality = request()->input('quality', '720p');
+        $project->update([
+            'status' => 'processing',
+            'quality' => $quality
+        ]);
 
         // Показываем пользователю что началась генерация
         session()->flash('info', 'Генерация видео началась... Пожалуйста подождите 1-2 минуты.');
@@ -158,9 +163,20 @@ class VideoProjectController extends Controller
         }
 
         // Подготавливаем данные для video_generator.py (новый формат)
+        $qualityMap = [
+            '480p' => ['width' => 854, 'height' => 480],
+            '720p' => ['width' => 1280, 'height' => 720],
+            '1080p' => ['width' => 1920, 'height' => 1080],
+            '1440p' => ['width' => 2560, 'height' => 1440],
+        ];
+
+        $resolution = $qualityMap[$quality] ?? $qualityMap['720p'];
+
         $videoData = [
             'segments' => $segmentsData,
-            'output_file' => $videoFile
+            'output_file' => $videoFile,
+            'width' => $resolution['width'],
+            'height' => $resolution['height']
         ];
 
         // Вызов Python скрипта для генерации видео
