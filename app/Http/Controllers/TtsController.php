@@ -32,9 +32,10 @@ class TtsController extends Controller
         // Путь к Python скрипту
         $pythonScript = base_path('scripts/tts_worker.py');
         $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
+        $outputDir = public_path('audio');
 
-        // Вызов Python скрипта
-        $result = Process::run([
+        // Вызов Python скрипта с рабочей директорией
+        $result = Process::path($outputDir)->run([
             $pythonBin,
             $pythonScript,
             $text,
@@ -51,9 +52,8 @@ class TtsController extends Controller
             return back()->withErrors(['error' => $output['error']]);
         }
 
-        // Перемещаем файл в public
+        // Файл уже в public/audio
         $filename = basename($output['file']);
-        rename($output['file'], public_path('audio/' . $filename));
 
         return redirect()->route('tts.index')->with([
             'success' => 'Аудио успешно сгенерировано!',
