@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\TtsHistory;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Process;
 
@@ -9,7 +10,8 @@ class TtsController extends Controller
 {
     public function index()
     {
-        return view('tts.index');
+        $history = TtsHistory::orderBy('created_at', 'desc')->limit(10)->get();
+        return view('tts.index', compact('history'));
     }
 
     public function generate(Request $request)
@@ -31,7 +33,7 @@ class TtsController extends Controller
 
         // Путь к Python скрипту
         $pythonScript = base_path('scripts/tts_worker.py');
-        $pythonBin = '/usr/bin/python3';
+        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
         $outputDir = public_path('audio');
 
         // Вызов Python скрипта с рабочей директорией
@@ -55,9 +57,31 @@ class TtsController extends Controller
         // Файл уже в public/audio
         $filename = basename($output['file']);
 
+        // Сохраняем в историю
+        TtsHistory::create([
+            'text' => $text,
+            'speed' => $speed,
+            'audio_file' => 'audio/' . $filename
+        ]);
+
         return redirect()->route('tts.index')->with([
             'success' => 'Аудио успешно сгенерировано!',
             'audio_file' => 'audio/' . $filename
         ]);
+    }
+
+    public function delete($id)
+    {
+        $item = TtsHistory::findOrFail($id);
+
+        // Удаляем файл
+        $filePath = public_path($item->audio_file);
+        if (file_exists($filePath)) {
+            unlink($filePath);
+        }
+
+        $item->delete();
+
+        return redirect()->route('tts.index')->with('success', 'Запись удалена');
     }
 }

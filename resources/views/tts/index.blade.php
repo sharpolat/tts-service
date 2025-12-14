@@ -109,6 +109,43 @@
             color: #0000ff;
             text-decoration: underline;
         }
+
+        .history {
+            margin-top: 20px;
+            border: 2px inset #fff;
+            background: #fff;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 8px;
+            margin-bottom: 8px;
+            border: 1px solid #ccc;
+            background: #f0f0f0;
+        }
+
+        .history-item:hover {
+            background: #e0e0e0;
+        }
+
+        .history-text {
+            font-size: 11px;
+            margin-bottom: 5px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .history-actions {
+            font-size: 11px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-small {
+            padding: 2px 8px;
+            font-size: 11px;
+        }
     </style>
 </head>
 <body>
@@ -168,7 +205,38 @@
                 </p>
             </div>
         @endif
+
+        @if($history->count() > 0)
+            <div class="history">
+                <strong>История (последние 10):</strong>
+                @foreach($history as $item)
+                    <div class="history-item">
+                        <div class="history-text" title="{{ $item->text }}">{{ Str::limit($item->text, 80) }}</div>
+                        <div class="history-actions">
+                            <span>{{ $item->created_at->format('d.m.Y H:i') }}</span>
+                            <a href="{{ asset($item->audio_file) }}" target="_blank">Прослушать</a>
+                            <a href="{{ asset($item->audio_file) }}" download>Скачать</a>
+                            <a href="#" onclick="loadText('{{ addslashes($item->text) }}', '{{ substr($item->speed, 1, -1) }}'); return false;">Повторить</a>
+                            <form action="{{ route('tts.delete', $item->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Удалить запись?');">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="btn-small">Удалить</button>
+                            </form>
+                        </div>
+                    </div>
+                @endforeach
+            </div>
+        @endif
         </div>
     </div>
+
+    <script>
+        function loadText(text, speed) {
+            document.getElementById('text').value = text;
+            // Конвертируем +10% в 1, +20% в 2 и т.д.
+            const speedValue = speed === '0' ? '0' : String(parseInt(speed) / 10);
+            document.getElementById('speed').value = speedValue;
+        }
+    </script>
 </body>
 </html>
