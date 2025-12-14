@@ -203,6 +203,51 @@ class VideoProjectController extends Controller
         return back()->with('success', 'Видео успешно сгенерировано!');
     }
 
+    public function autoSearchImages($id)
+    {
+        $project = VideoProject::with('videoSegments')->findOrFail($id);
+
+        // Подготавливаем сегменты для поиска
+        $segments = $project->videoSegments->map(function ($segment) {
+            return [
+                'text' => $segment->text,
+                'search_query' => $segment->search_query,
+                'order' => $segment->order,
+            ];
+        })->toArray();
+
+        // Вызываем Python скрипт для поиска картинок
+        $pythonScript = base_path('scripts/image_searcher.py');
+        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
+
+        $result = Process::timeout(120)->run([
+            $pythonBin,
+            $pythonScript,
+            json_encode($segments)
+        ]);
+
+        if (!$result->successful()) {
+            return back()->withErrors(['error' => 'Ошибка поиска картинок: ' . $result->errorOutput()]);
+        }
+
+        $output = json_decode($result->output(), true);
+
+        if (isset($output['error'])) {
+            return back()->withErrors(['error' => 'Ошибка: ' . $output['error']]);
+        }
+
+        // Автоматически выбираем первую картинку для каждого сегмента
+        foreach ($output['results'] as $result) {
+            $segment = $project->videoSegments->where('order', $result['order'])->first();
+
+            if ($segment && $result['selected_image']) {
+                $segment->update(['image_url' => $result['selected_image']]);
+            }
+        }
+
+        return back()->with('success', 'Картинки автоматически найдены и добавлены!');
+    }
+
     public function delete($id)
     {
         $project = VideoProject::findOrFail($id);

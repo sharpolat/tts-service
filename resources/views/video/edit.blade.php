@@ -202,7 +202,19 @@
 
             <hr style="margin: 20px 0; border: 1px inset #fff;">
 
-            <form action="{{ route('video.generate', $project->id) }}" method="POST" style="margin-top: 15px;">
+            <form action="{{ route('video.autoSearchImages', $project->id) }}" method="POST" style="margin: 15px 0;">
+                @csrf
+                <button type="submit" class="btn-search" onclick="return confirm('Автоматически найти картинки для всех сегментов?');">
+                    🔍 АВТОПОИСК КАРТИНОК (Unsplash)
+                </button>
+                <p style="font-size: 10px; margin-top: 5px; color: #666;">
+                    Автоматически найдет и подставит картинки для всех сегментов на основе поисковых запросов
+                </p>
+            </form>
+
+            <hr style="margin: 20px 0; border: 1px inset #fff;">
+
+            <form action="{{ route('video.generate', $project->id) }}" method="POST">
                 @csrf
                 <button type="submit" class="btn-generate" onclick="return confirm('Создать видео из всех сегментов?');">
                     ГЕНЕРИРОВАТЬ ВИДЕО

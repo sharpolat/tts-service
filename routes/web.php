@@ -19,3 +19,4 @@ Route::prefix('video')->middleware('auth.basic')->group(function () {
     Route::post('/{id}/generate', [VideoProjectController::class, 'generate'])->name('video.generate');
     Route::delete('/{id}', [VideoProjectController::class, 'delete'])->name('video.delete');
 });
+Route::post('/video/{id}/auto-search-images', [VideoProjectController::class, 'autoSearchImages'])->name('video.autoSearchImages')->middleware('auth.basic');
