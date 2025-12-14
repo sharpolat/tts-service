@@ -80,8 +80,14 @@ class ProcessVideoSegments implements ShouldQueue
                 foreach ($output['results'] as $resultData) {
                     $segment = $this->project->videoSegments->where('order', $resultData['order'])->first();
 
-                    if ($segment && isset($resultData['selected_image'])) {
-                        $segment->update(['image_url' => $resultData['selected_image']]);
+                    if ($segment && isset($resultData['images'])) {
+                        // Сохраняем топ-3 картинки как варианты
+                        $options = array_slice($resultData['images'], 0, 3);
+
+                        $segment->update([
+                            'image_options' => json_encode($options),
+                            'image_url' => $options[0]['url'] ?? null  // Первая выбрана по умолчанию
+                        ]);
                     }
                 }
             }

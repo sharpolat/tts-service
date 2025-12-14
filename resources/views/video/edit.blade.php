@@ -170,36 +170,34 @@
 
                         <input type="hidden" name="segments[{{ $loop->index }}][id]" value="{{ $segment->id }}">
 
-                        <div class="form-group">
-                            <label>Поисковый запрос:</label>
-                            <input type="text"
-                                   name="segments[{{ $loop->index }}][search_query]"
-                                   value="{{ $segment->search_query }}"
-                                   placeholder="итачи учиха аниме">
-                        </div>
-
-                        <div class="form-group">
-                            <label>URL картинки (показывается во время озвучки этого текста):</label>
-                            <input type="url"
-                                   name="segments[{{ $loop->index }}][image_url]"
-                                   id="image_{{ $segment->id }}"
-                                   value="{{ $segment->image_url }}"
-                                   placeholder="https://example.com/image.jpg"
-                                   onchange="updatePreview({{ $segment->id }})">
-                        </div>
-
-                        @if($segment->image_url)
-                            <img src="{{ $segment->image_url }}"
-                                 class="image-preview"
-                                 id="preview_{{ $segment->id }}"
-                                 alt="Preview">
-                        @else
-                            <img src="" class="image-preview" id="preview_{{ $segment->id }}" style="display:none;">
+                        @if($segment->search_query)
+                            <p style="font-size: 10px; color: #666; margin: 10px 0;">
+                                <strong>AI запрос:</strong> {{ $segment->search_query }}
+                            </p>
                         @endif
 
-                        <p style="margin-top: 10px; font-size: 10px; color: #666;">
-                            Вставьте URL картинки вручную или найдите в интернете
-                        </p>
+                        @if($segment->image_options && count($segment->image_options) > 0)
+                            <div class="form-group">
+                                <label>Выберите картинку (отметьте галочкой):</label>
+                                <div style="display: flex; gap: 10px; margin-top: 10px;">
+                                    @foreach($segment->image_options as $index => $option)
+                                        <label style="cursor: pointer; border: 2px solid #999; padding: 5px; background: #fff;">
+                                            <input type="radio"
+                                                   name="segments[{{ $loop->parent->index }}][image_url]"
+                                                   value="{{ $option['url'] }}"
+                                                   {{ $segment->image_url === $option['url'] ? 'checked' : '' }}>
+                                            <img src="{{ $option['thumb'] ?? $option['url'] }}"
+                                                 style="display: block; max-width: 150px; max-height: 150px; margin-top: 5px;"
+                                                 alt="Вариант {{ $index + 1 }}">
+                                        </label>
+                                    @endforeach
+                                </div>
+                            </div>
+                        @else
+                            <p style="margin-top: 10px; font-size: 10px; color: #666;">
+                                Нажмите "АВТОПОИСК КАРТИНОК" чтобы найти варианты
+                            </p>
+                        @endif
                     </div>
                 @endforeach
 

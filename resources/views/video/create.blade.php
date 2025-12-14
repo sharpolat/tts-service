@@ -138,14 +138,9 @@
                             <textarea name="segments[{{ $index }}][text]" rows="2" readonly>{{ $segment['text'] }}</textarea>
                         </div>
 
-                        <div class="form-group">
-                            <label for="search_{{ $index }}">Поисковый запрос для картинки (показывается во время озвучки):</label>
-                            <input type="text"
-                                   name="segments[{{ $index }}][search_query]"
-                                   id="search_{{ $index }}"
-                                   value="{{ $segment['search_query'] ?? '' }}"
-                                   placeholder="Редактировать запрос">
-                        </div>
+                        <p style="font-size: 10px; color: #666; margin: 10px 0;">
+                            После создания проекта нажмите "АВТОПОИСК КАРТИНОК" - AI найдёт 3 варианта для каждого сегмента
+                        </p>
                     </div>
                 @endforeach
 

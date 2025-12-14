@@ -11,10 +11,15 @@ class VideoSegment extends Model
         'text',
         'audio_segment',
         'image_url',
+        'image_options',
         'search_query',
         'order',
         'start_time',
         'duration',
+    ];
+
+    protected $casts = [
+        'image_options' => 'array',
     ];
 
     public function videoProject()
