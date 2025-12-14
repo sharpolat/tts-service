@@ -154,13 +154,17 @@ class VideoProjectController extends Controller
             }
         }
 
+        // Подготавливаем данные для video_generator.py (новый формат)
+        $videoData = [
+            'segments' => $segmentsData,
+            'output_file' => $videoFile
+        ];
+
         // Вызов Python скрипта для генерации видео
         $result = Process::timeout(600)->run([
             $pythonBin,
             $pythonScript,
-            json_encode($segmentsData),
-            $audioFile,
-            $videoFile
+            json_encode($videoData)
         ]);
 
         if (!$result->successful()) {
