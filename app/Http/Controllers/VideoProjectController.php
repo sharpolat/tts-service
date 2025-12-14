@@ -28,7 +28,7 @@ class VideoProjectController extends Controller
             $pythonBin,
             $pythonScript,
             $ttsHistory->text,
-            'llama3.2:latest'
+            'qwen2.5:14b'
         ]);
 
         $aiSegments = [];

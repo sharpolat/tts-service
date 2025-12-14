@@ -13,7 +13,7 @@ import requests
 import re
 
 
-def analyze_with_ollama(text, model="llama3.2:latest"):
+def analyze_with_ollama(text, model="qwen2.5:14b"):
     """
     Анализирует текст через Ollama API
     Возвращает структурированные сегменты с поисковыми запросами
