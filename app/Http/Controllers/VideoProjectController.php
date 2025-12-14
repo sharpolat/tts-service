@@ -24,7 +24,7 @@ class VideoProjectController extends Controller
         $pythonScript = base_path('scripts/ai_video_analyzer.py');
         $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
 
-        $result = Process::timeout(120)->run([
+        $result = Process::timeout(300)->run([
             $pythonBin,
             $pythonScript,
             $ttsHistory->text,
