@@ -123,22 +123,87 @@ def create_video(segments_data, audio_file, output_file):
     return False
 
 
+def create_video_from_segments(data):
+    """
+    Создает видео из готовых аудио сегментов и картинок
+    data: {
+        "segments": [
+            {
+                "image_url": "...",
+                "audio_file": "/path/to/segment.mp3",
+                "duration": 5.5,
+                "order": 0
+            }
+        ],
+        "output_file": "/path/to/output.mp4"
+    }
+    """
+    segments = data['segments']
+    output_file = data['output_file']
+
+    # Создаем временную директорию для скачанных картинок
+    temp_dir = Path('/tmp/video_temp')
+    temp_dir.mkdir(exist_ok=True)
+
+    video_clips = []
+
+    for segment in segments:
+        # Скачиваем картинку
+        image_path = temp_dir / f"image_{segment['order']}.jpg"
+
+        if not download_image(segment['image_url'], image_path):
+            print(f"Пропускаем сегмент {segment['order']} - не удалось скачать картинку")
+            continue
+
+        # Создаем видео клип из картинки и аудио
+        try:
+            image_clip = ImageClip(str(image_path)).set_duration(segment['duration'])
+            audio_clip = AudioFileClip(segment['audio_file'])
+
+            video_clip = image_clip.set_audio(audio_clip)
+            video_clips.append(video_clip)
+        except Exception as e:
+            print(f"Ошибка создания клипа {segment['order']}: {e}", file=sys.stderr)
+            continue
+
+    if not video_clips:
+        return False
+
+    # Объединяем все клипы
+    final_video = concatenate_videoclips(video_clips, method="compose")
+
+    # Экспортируем финальное видео
+    final_video.write_videofile(
+        output_file,
+        fps=24,
+        codec='libx264',
+        audio_codec='aac',
+        temp_audiofile='/tmp/temp-audio.m4a',
+        remove_temp=True
+    )
+
+    # Закрываем клипы
+    for clip in video_clips:
+        clip.close()
+    final_video.close()
+
+    return True
+
+
 if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print(json.dumps({"error": "Usage: video_generator.py <segments_json> <audio_file> <output_file>"}))
+    if len(sys.argv) < 2:
+        print(json.dumps({"error": "Usage: video_generator.py <json_data>"}))
         sys.exit(1)
 
-    segments_json = sys.argv[1]
-    audio_file = sys.argv[2]
-    output_file = sys.argv[3]
+    json_data = sys.argv[1]
 
     try:
-        segments = json.loads(segments_json)
+        data = json.loads(json_data)
 
-        success = create_video(segments, audio_file, output_file)
+        success = create_video_from_segments(data)
 
         if success:
-            print(json.dumps({"success": True, "file": output_file}))
+            print(json.dumps({"success": True, "file": data['output_file']}))
         else:
             print(json.dumps({"error": "Failed to create video"}))
             sys.exit(1)
