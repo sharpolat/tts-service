@@ -203,6 +203,57 @@ class VideoProjectController extends Controller
         return back()->with('success', 'AI работает в фоне! Обновите страницу через 1-2 минуты.');
     }
 
+    public function regenerateSegment($id, $segmentId)
+    {
+        $segment = \App\Models\VideoSegment::where('id', $segmentId)
+            ->where('video_project_id', $id)
+            ->firstOrFail();
+
+        $searchQuery = request()->input('search_query');
+
+        if (empty($searchQuery)) {
+            return response()->json(['error' => 'Поисковый запрос не указан'], 400);
+        }
+
+        // Обновляем search_query
+        $segment->update(['search_query' => $searchQuery]);
+
+        // Вызываем Python скрипт для поиска картинок
+        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
+        $imageSearcherScript = base_path('scripts/image_searcher.py');
+
+        $result = \Illuminate\Support\Facades\Process::timeout(60)->run([
+            $pythonBin,
+            $imageSearcherScript,
+            $searchQuery,
+            10  // Найти 10 картинок, топ-3 сохраним
+        ]);
+
+        if (!$result->successful()) {
+            return response()->json(['error' => 'Ошибка поиска: ' . $result->errorOutput()], 500);
+        }
+
+        $output = json_decode($result->output(), true);
+
+        if (isset($output['error'])) {
+            return response()->json(['error' => $output['error']], 500);
+        }
+
+        if (!isset($output['images']) || count($output['images']) === 0) {
+            return response()->json(['error' => 'Картинки не найдены'], 404);
+        }
+
+        // Сохраняем топ-3 картинки
+        $options = array_slice($output['images'], 0, 3);
+
+        $segment->update([
+            'image_options' => $options,
+            'image_url' => $options[0]['url'] ?? null
+        ]);
+
+        return response()->json(['success' => true]);
+    }
+
     public function delete($id)
     {
         $project = VideoProject::findOrFail($id);

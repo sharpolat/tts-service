@@ -17,6 +17,7 @@ Route::prefix('video')->middleware('auth.basic')->group(function () {
     Route::get('/{id}/edit', [VideoProjectController::class, 'edit'])->name('video.edit');
     Route::put('/{id}', [VideoProjectController::class, 'update'])->name('video.update');
     Route::post('/{id}/generate', [VideoProjectController::class, 'generate'])->name('video.generate');
+    Route::post('/{id}/auto-search-images', [VideoProjectController::class, 'autoSearchImages'])->name('video.autoSearchImages');
+    Route::post('/{id}/segment/{segmentId}/regenerate', [VideoProjectController::class, 'regenerateSegment'])->name('video.regenerateSegment');
     Route::delete('/{id}', [VideoProjectController::class, 'delete'])->name('video.delete');
 });
-Route::post('/video/{id}/auto-search-images', [VideoProjectController::class, 'autoSearchImages'])->name('video.autoSearchImages')->middleware('auth.basic');
