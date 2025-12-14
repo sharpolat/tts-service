@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""
+Генератор видео из картинок и аудио сегментов
+Использует: pydub для работы с аудио, moviepy для создания видео
+"""
+
+import sys
+import json
+import os
+from pydub import AudioSegment
+from pydub.silence import split_on_silence
+from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+import requests
+from pathlib import Path
+
+
+def split_audio_by_sentences(audio_file, num_segments):
+    """
+    Разрезает аудио на N равных частей (по количеству сегментов)
+    """
+    audio = AudioSegment.from_file(audio_file)
+    total_duration = len(audio)
+    segment_duration = total_duration / num_segments
+
+    segments = []
+    for i in range(num_segments):
+        start = int(i * segment_duration)
+        end = int((i + 1) * segment_duration) if i < num_segments - 1 else total_duration
+        segment = audio[start:end]
+        segments.append({
+            'audio': segment,
+            'start_time': start / 1000.0,
+            'duration': (end - start) / 1000.0
+        })
+
+    return segments
+
+
+def download_image(url, output_path):
+    """
+    Скачивает картинку по URL
+    """
+    try:
+        response = requests.get(url, timeout=10)
+        response.raise_for_status()
+
+        with open(output_path, 'wb') as f:
+            f.write(response.content)
+
+        return True
+    except Exception as e:
+        print(f"Ошибка загрузки картинки {url}: {str(e)}", file=sys.stderr)
+        return False
+
+
+def create_video(segments_data, audio_file, output_file):
+    """
+    Создает видео из сегментов
+    segments_data: [{'image_url': '...', 'text': '...', 'order': 0}, ...]
+    """
+
+    # Создаем временную директорию для скачанных картинок и аудио сегментов
+    temp_dir = Path('temp_video')
+    temp_dir.mkdir(exist_ok=True)
+
+    # Разрезаем аудио на части
+    audio_segments = split_audio_by_sentences(audio_file, len(segments_data))
+
+    # Скачиваем картинки и создаем видео клипы
+    video_clips = []
+
+    for i, (segment_info, audio_seg) in enumerate(zip(segments_data, audio_segments)):
+        # Скачиваем картинку
+        image_path = temp_dir / f"image_{i}.jpg"
+
+        if not download_image(segment_info['image_url'], image_path):
+            # Если не удалось скачать, используем черный экран
+            print(f"Используем черный экран для сегмента {i}")
+            # TODO: создать черное изображение
+            continue
+
+        # Сохраняем аудио сегмент
+        audio_segment_path = temp_dir / f"audio_{i}.mp3"
+        audio_seg['audio'].export(audio_segment_path, format='mp3')
+
+        # Создаем видео клип
+        duration = audio_seg['duration']
+
+        image_clip = ImageClip(str(image_path)).set_duration(duration)
+        audio_clip = AudioFileClip(str(audio_segment_path))
+
+        video_clip = image_clip.set_audio(audio_clip)
+        video_clips.append(video_clip)
+
+    # Объединяем все клипы
+    if video_clips:
+        final_video = concatenate_videoclips(video_clips, method="compose")
+
+        # Экспортируем финальное видео
+        final_video.write_videofile(
+            output_file,
+            fps=24,
+            codec='libx264',
+            audio_codec='aac',
+            temp_audiofile='temp-audio.m4a',
+            remove_temp=True
+        )
+
+        # Закрываем клипы
+        for clip in video_clips:
+            clip.close()
+        final_video.close()
+
+        return True
+
+    return False
+
+
+if __name__ == "__main__":
+    if len(sys.argv) < 4:
+        print(json.dumps({"error": "Usage: video_generator.py <segments_json> <audio_file> <output_file>"}))
+        sys.exit(1)
+
+    segments_json = sys.argv[1]
+    audio_file = sys.argv[2]
+    output_file = sys.argv[3]
+
+    try:
+        segments = json.loads(segments_json)
+
+        success = create_video(segments, audio_file, output_file)
+
+        if success:
+            print(json.dumps({"success": True, "file": output_file}))
+        else:
+            print(json.dumps({"error": "Failed to create video"}))
+            sys.exit(1)
+
+    except Exception as e:
+        print(json.dumps({"error": str(e)}))
+        sys.exit(1)

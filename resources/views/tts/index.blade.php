@@ -266,6 +266,7 @@
                             <span>{{ $item->created_at->format('d.m.Y H:i') }}</span>
                             <a href="{{ asset($item->audio_file) }}" target="_blank">Прослушать</a>
                             <a href="{{ asset($item->audio_file) }}" download>Скачать</a>
+                            <a href="{{ route('video.create', $item->id) }}">Создать видео</a>
                             <a href="#" onclick="openEditModal({{ $item->id }}, '{{ addslashes($item->text) }}', '{{ substr($item->speed, 1, -1) }}'); return false;">Редактировать</a>
                             <form action="{{ route('tts.delete', $item->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Удалить запись?');">
                                 @csrf
