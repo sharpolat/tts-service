@@ -134,8 +134,8 @@
         </div>
         <div class="content">
             <p style="margin-bottom: 10px;">
-                <a href="{{ route('tts.index') }}">← Назад к TTS</a> |
-                <a href="{{ route('video.index') }}">Все проекты</a>
+                <a href="{{ route('tts.index') }}">← TTS Главная</a> |
+                <a href="{{ route('video.index') }}">Все видео проекты</a>
             </p>
 
             @if(session('success'))

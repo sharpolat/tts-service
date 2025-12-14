@@ -97,8 +97,8 @@
             <span>Видео проекты</span>
         </div>
         <div class="content">
-            <p style="margin-bottom: 15px;">
-                <a href="{{ route('tts.index') }}">← Назад к TTS</a>
+            <p style="margin-bottom: 15px; font-size: 11px;">
+                <a href="{{ route('tts.index') }}">← TTS Главная</a>
             </p>
 
             <h1>Все видео проекты</h1>

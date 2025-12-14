@@ -98,7 +98,8 @@
             <h1>Новый видео проект</h1>
 
             <p style="margin-bottom: 10px; font-size: 11px;">
-                <a href="{{ route('tts.index') }}">← Назад к TTS</a>
+                <a href="{{ route('tts.index') }}">← TTS Главная</a> |
+                <a href="{{ route('video.index') }}">Все видео проекты</a>
             </p>
 
             <form action="{{ route('video.store') }}" method="POST">
