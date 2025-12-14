@@ -43,13 +43,13 @@ class TtsController extends Controller
         ]);
 
         if (!$result->successful()) {
-            return back()->withErrors(['error' => 'Ошибка генерации аудио']);
+            return back()->withErrors(['error' => 'Ошибка генерации аудио: ' . $result->errorOutput()]);
         }
 
         $output = json_decode($result->output(), true);
 
         if (isset($output['error'])) {
-            return back()->withErrors(['error' => $output['error']]);
+            return back()->withErrors(['error' => 'Python ошибка: ' . $output['error']]);
         }
 
         // Файл уже в public/audio
