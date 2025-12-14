@@ -1,51 +1,82 @@
 #!/usr/bin/env python3
 """
 Автоматический поиск картинок для видео сегментов
-Использует несколько источников:
-1. Unsplash API (бесплатно)
-2. Pexels API (бесплатно с ключом)
-3. Pixabay API (бесплатно с ключом)
+Использует полностью бесплатные источники без API ключей:
+1. Wikimedia Commons (Wikipedia фото)
+2. Lorem Picsum (случайные фото)
 """
 
 import sys
 import json
 import requests
 from urllib.parse import quote
+import hashlib
 
 
-def search_unsplash(query, per_page=3):
+def search_wikimedia(query, per_page=5):
     """
-    Поиск через Unsplash (без API ключа, через публичный endpoint)
+    Поиск через Wikimedia Commons (Wikipedia) - полностью бесплатно
     """
     try:
-        # Используем публичный поиск Unsplash
-        url = f"https://unsplash.com/napi/search/photos?query={quote(query)}&per_page={per_page}"
+        url = "https://commons.wikimedia.org/w/api.php"
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        params = {
+            'action': 'query',
+            'format': 'json',
+            'generator': 'search',
+            'gsrsearch': query,
+            'gsrnamespace': '6',  # File namespace
+            'gsrlimit': per_page,
+            'prop': 'imageinfo',
+            'iiprop': 'url|size',
+            'iiurlwidth': '800'
         }
 
-        response = requests.get(url, headers=headers, timeout=10)
+        response = requests.get(url, params=params, timeout=10)
         response.raise_for_status()
 
         data = response.json()
 
         images = []
-        if 'results' in data:
-            for item in data['results'][:per_page]:
-                images.append({
-                    'url': item['urls']['regular'],
-                    'thumb': item['urls']['small'],
-                    'author': item['user']['name'],
-                    'source': 'unsplash',
-                    'download_url': item['links']['download']
-                })
+        if 'query' in data and 'pages' in data['query']:
+            for page_id, page in data['query']['pages'].items():
+                if 'imageinfo' in page and page['imageinfo']:
+                    img_info = page['imageinfo'][0]
+                    images.append({
+                        'url': img_info.get('url', img_info.get('thumburl', '')),
+                        'thumb': img_info.get('thumburl', img_info.get('url', '')),
+                        'author': 'Wikimedia Commons',
+                        'source': 'wikimedia'
+                    })
 
         return images
 
     except Exception as e:
-        print(f"Ошибка поиска Unsplash: {str(e)}", file=sys.stderr)
+        print(f"Ошибка поиска Wikimedia: {str(e)}", file=sys.stderr)
         return []
+
+
+def get_picsum_images(query, count=3):
+    """
+    Генерирует стабильные случайные картинки на основе запроса
+    Lorem Picsum - полностью бесплатно, без лимитов
+    """
+    images = []
+
+    # Генерируем seed на основе запроса для стабильности
+    seed = int(hashlib.md5(query.encode()).hexdigest(), 16) % 1000
+
+    for i in range(count):
+        image_id = (seed + i * 17) % 1000  # Разные ID для разных картинок
+
+        images.append({
+            'url': f'https://picsum.photos/seed/{image_id}/1920/1080',
+            'thumb': f'https://picsum.photos/seed/{image_id}/400/300',
+            'author': 'Lorem Picsum',
+            'source': 'picsum'
+        })
+
+    return images
 
 
 def search_pexels(query, api_key, per_page=3):
@@ -118,26 +149,20 @@ def search_pixabay(query, api_key, per_page=3):
         return []
 
 
-def search_images(query, pexels_key=None, pixabay_key=None, per_source=3):
+def search_images(query, pexels_key=None, pixabay_key=None, per_source=5):
     """
-    Комбинированный поиск по всем источникам
+    Комбинированный поиск - приоритет бесплатным источникам
     """
     all_images = []
 
-    # Поиск в Pixabay если есть ключ (приоритет - более стабильный)
-    if pixabay_key:
-        pixabay_results = search_pixabay(query, pixabay_key, per_source)
-        all_images.extend(pixabay_results)
+    # 1. Wikimedia Commons (Wikipedia) - полностью бесплатно, без лимитов
+    wikimedia_results = search_wikimedia(query, per_source)
+    all_images.extend(wikimedia_results)
 
-    # Поиск в Pexels если есть ключ
-    if pexels_key:
-        pexels_results = search_pexels(query, pexels_key, per_source)
-        all_images.extend(pexels_results)
-
-    # Поиск в Unsplash только если нет других результатов
-    if not all_images:
-        unsplash_results = search_unsplash(query, per_source)
-        all_images.extend(unsplash_results)
+    # 2. Lorem Picsum - если Wikimedia не нашла достаточно
+    if len(all_images) < per_source:
+        picsum_results = get_picsum_images(query, per_source - len(all_images))
+        all_images.extend(picsum_results)
 
     return all_images
 
