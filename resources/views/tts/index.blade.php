@@ -206,6 +206,10 @@
             </div>
         @endif
 
+        <p style="margin-bottom: 15px; font-size: 11px;">
+            <a href="{{ route('video.index') }}">📹 Мои видео проекты</a>
+        </p>
+
         @if($errors->any())
             <div class="alert alert-error">
                 @foreach($errors->all() as $error)
