@@ -146,6 +146,49 @@
             padding: 2px 8px;
             font-size: 11px;
         }
+
+        .version-item {
+            padding: 5px 8px;
+            margin: 5px 0 5px 20px;
+            border: 1px solid #999;
+            background: #e8e8e8;
+            font-size: 10px;
+        }
+
+        .version-toggle {
+            cursor: pointer;
+            color: #0000ff;
+            text-decoration: underline;
+            font-size: 10px;
+            margin-left: 10px;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+        }
+
+        .modal-content {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            padding: 3px;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .modal-body {
+            padding: 10px;
+        }
     </style>
 </head>
 <body>
@@ -211,18 +254,42 @@
                 <strong>История (последние 10):</strong>
                 @foreach($history as $item)
                     <div class="history-item">
-                        <div class="history-text" title="{{ $item->text }}">{{ Str::limit($item->text, 80) }}</div>
+                        <div class="history-text" title="{{ $item->text }}">
+                            v{{ $item->version }} - {{ Str::limit($item->text, 80) }}
+                            @if($item->versions->count() > 0)
+                                <span class="version-toggle" onclick="toggleVersions({{ $item->id }})">
+                                    [{{ $item->versions->count() }} версий]
+                                </span>
+                            @endif
+                        </div>
                         <div class="history-actions">
                             <span>{{ $item->created_at->format('d.m.Y H:i') }}</span>
                             <a href="{{ asset($item->audio_file) }}" target="_blank">Прослушать</a>
                             <a href="{{ asset($item->audio_file) }}" download>Скачать</a>
-                            <a href="#" onclick="loadText('{{ addslashes($item->text) }}', '{{ substr($item->speed, 1, -1) }}'); return false;">Повторить</a>
+                            <a href="#" onclick="openEditModal({{ $item->id }}, '{{ addslashes($item->text) }}', '{{ substr($item->speed, 1, -1) }}'); return false;">Редактировать</a>
                             <form action="{{ route('tts.delete', $item->id) }}" method="POST" style="display:inline;" onsubmit="return confirm('Удалить запись?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn-small">Удалить</button>
                             </form>
                         </div>
+
+                        @if($item->versions->count() > 0)
+                            <div id="versions-{{ $item->id }}" style="display:none;">
+                                @foreach($item->versions as $version)
+                                    <div class="version-item">
+                                        <div class="history-text" title="{{ $version->text }}">
+                                            v{{ $version->version }} - {{ Str::limit($version->text, 70) }}
+                                        </div>
+                                        <div class="history-actions">
+                                            <span>{{ $version->created_at->format('d.m.Y H:i') }}</span>
+                                            <a href="{{ asset($version->audio_file) }}" target="_blank">Прослушать</a>
+                                            <a href="{{ asset($version->audio_file) }}" download>Скачать</a>
+                                        </div>
+                                    </div>
+                                @endforeach
+                            </div>
+                        @endif
                     </div>
                 @endforeach
             </div>
@@ -230,12 +297,69 @@
         </div>
     </div>
 
+    <!-- Modal для редактирования -->
+    <div id="editModal" class="modal">
+        <div class="modal-content">
+            <div class="title-bar">
+                <span>Редактирование</span>
+                <span style="cursor:pointer;" onclick="closeEditModal()">X</span>
+            </div>
+            <div class="modal-body">
+                <form id="editForm" method="POST">
+                    @csrf
+                    @method('PUT')
+
+                    <div class="form-group">
+                        <label for="edit_text">Текст:</label>
+                        <textarea name="text" id="edit_text" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="edit_speed">Скорость:</label>
+                        <select name="speed" id="edit_speed">
+                            <option value="0">Нормальная</option>
+                            <option value="1">Быстрее (+10%)</option>
+                            <option value="2">Быстро (+20%)</option>
+                            <option value="3">Очень быстро (+30%)</option>
+                            <option value="4">Максимально быстро (+40%)</option>
+                        </select>
+                    </div>
+
+                    <button type="submit">Сохранить</button>
+                    <button type="button" onclick="closeEditModal()">Отмена</button>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <script>
-        function loadText(text, speed) {
-            document.getElementById('text').value = text;
-            // Конвертируем +10% в 1, +20% в 2 и т.д.
+        function openEditModal(id, text, speed) {
+            document.getElementById('edit_text').value = text;
             const speedValue = speed === '0' ? '0' : String(parseInt(speed) / 10);
-            document.getElementById('speed').value = speedValue;
+            document.getElementById('edit_speed').value = speedValue;
+            document.getElementById('editForm').action = '/update/' + id;
+            document.getElementById('editModal').style.display = 'block';
+        }
+
+        function closeEditModal() {
+            document.getElementById('editModal').style.display = 'none';
+        }
+
+        function toggleVersions(id) {
+            const versionsDiv = document.getElementById('versions-' + id);
+            if (versionsDiv.style.display === 'none') {
+                versionsDiv.style.display = 'block';
+            } else {
+                versionsDiv.style.display = 'none';
+            }
+        }
+
+        // Закрытие по клику вне модального окна
+        window.onclick = function(event) {
+            const modal = document.getElementById('editModal');
+            if (event.target == modal) {
+                closeEditModal();
+            }
         }
     </script>
 </body>
