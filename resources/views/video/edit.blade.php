@@ -164,6 +164,7 @@
                         <div class="segment-header">Сегмент {{ $segment->order + 1 }}</div>
 
                         <div class="segment-text">
+                            <strong style="font-size: 10px; color: #666;">Озвучивается текст:</strong><br>
                             {{ $segment->text }}
                         </div>
 
@@ -178,7 +179,7 @@
                         </div>
 
                         <div class="form-group">
-                            <label>URL картинки:</label>
+                            <label>URL картинки (показывается во время озвучки этого текста):</label>
                             <input type="url"
                                    name="segments[{{ $loop->index }}][image_url]"
                                    id="image_{{ $segment->id }}"

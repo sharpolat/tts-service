@@ -134,12 +134,12 @@
                         </div>
 
                         <div class="form-group">
-                            <label>Текст:</label>
+                            <label>Озвучивается текст:</label>
                             <textarea name="segments[{{ $index }}][text]" rows="2" readonly>{{ $segment['text'] }}</textarea>
                         </div>
 
                         <div class="form-group">
-                            <label for="search_{{ $index }}">Поисковый запрос (AI сгенерировал, можно редактировать):</label>
+                            <label for="search_{{ $index }}">Поисковый запрос для картинки (показывается во время озвучки):</label>
                             <input type="text"
                                    name="segments[{{ $index }}][search_query]"
                                    id="search_{{ $index }}"
