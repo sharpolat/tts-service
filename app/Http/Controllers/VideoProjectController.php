@@ -20,10 +20,39 @@ class VideoProjectController extends Controller
     {
         $ttsHistory = TtsHistory::findOrFail($ttsHistoryId);
 
-        // Разбиваем текст на сегменты (по предложениям)
-        $sentences = preg_split('/(?<=[.!?])\s+/', $ttsHistory->text, -1, PREG_SPLIT_NO_EMPTY);
+        // Используем AI для умного разбиения текста
+        $pythonScript = base_path('scripts/ai_video_analyzer.py');
+        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
 
-        return view('video.create', compact('ttsHistory', 'sentences'));
+        $result = Process::timeout(120)->run([
+            $pythonBin,
+            $pythonScript,
+            $ttsHistory->text,
+            'llama3.2:latest'
+        ]);
+
+        $aiSegments = [];
+        if ($result->successful()) {
+            $output = json_decode($result->output(), true);
+            if (isset($output['segments'])) {
+                $aiSegments = $output['segments'];
+            }
+        }
+
+        // Fallback если AI не сработал
+        if (empty($aiSegments)) {
+            $sentences = preg_split('/(?<=[.!?])\s+/', $ttsHistory->text, -1, PREG_SPLIT_NO_EMPTY);
+            foreach ($sentences as $index => $sentence) {
+                $aiSegments[] = [
+                    'text' => trim($sentence),
+                    'search_query' => '',
+                    'tone' => 'neutral',
+                    'order' => $index
+                ];
+            }
+        }
+
+        return view('video.create', compact('ttsHistory', 'aiSegments'));
     }
 
     public function store(Request $request)
@@ -117,7 +146,34 @@ class VideoProjectController extends Controller
             mkdir(public_path('videos'), 0777, true);
         }
 
-        // Вызов Python скрипта
+        // Сначала умно разрезаем аудио
+        $audioSplitterScript = base_path('scripts/smart_audio_splitter.py');
+        $audioSegmentsDir = public_path('temp_audio_segments_' . $project->id);
+
+        $audioSplitResult = Process::timeout(120)->run([
+            $pythonBin,
+            $audioSplitterScript,
+            $audioFile,
+            count($segmentsData),
+            $audioSegmentsDir
+        ]);
+
+        if (!$audioSplitResult->successful()) {
+            $project->update(['status' => 'failed']);
+            return back()->withErrors(['error' => 'Ошибка разрезания аудио: ' . $audioSplitResult->errorOutput()]);
+        }
+
+        $audioSegments = json_decode($audioSplitResult->output(), true);
+
+        // Добавляем информацию об аудио сегментах к данным
+        foreach ($segmentsData as $index => &$segment) {
+            if (isset($audioSegments['segments'][$index])) {
+                $segment['audio_file'] = $audioSegments['segments'][$index]['file'];
+                $segment['duration'] = $audioSegments['segments'][$index]['duration'];
+            }
+        }
+
+        // Вызов Python скрипта для генерации видео
         $result = Process::timeout(600)->run([
             $pythonBin,
             $pythonScript,

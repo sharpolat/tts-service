@@ -114,21 +114,31 @@
                     <strong>Аудио:</strong> <a href="{{ asset($ttsHistory->audio_file) }}" target="_blank">Прослушать</a>
                 </p>
 
-                <h2 style="font-size: 14px; margin: 15px 0 10px;">Сегменты (редактируйте поисковые запросы для картинок):</h2>
+                <h2 style="font-size: 14px; margin: 15px 0 10px;">
+                    AI создал {{ count($aiSegments) }} сегментов с поисковыми запросами:
+                </h2>
 
-                @foreach($sentences as $index => $sentence)
+                @foreach($aiSegments as $index => $segment)
                     <div class="segment">
-                        <div class="segment-number">Сегмент {{ $index + 1 }}</div>
-
-                        <div class="form-group">
-                            <label>Текст:</label>
-                            <textarea name="segments[{{ $index }}][text]" rows="2" readonly>{{ trim($sentence) }}</textarea>
+                        <div class="segment-number">
+                            Сегмент {{ $index + 1 }}
+                            @if(isset($segment['tone']))
+                                <span style="color: #666; font-size: 10px;">[{{ $segment['tone'] }}]</span>
+                            @endif
                         </div>
 
                         <div class="form-group">
-                            <label for="search_{{ $index }}">Поисковый запрос для картинки:</label>
-                            <input type="text" name="segments[{{ $index }}][search_query]" id="search_{{ $index }}"
-                                   placeholder="Например: итачи учиха аниме">
+                            <label>Текст:</label>
+                            <textarea name="segments[{{ $index }}][text]" rows="2" readonly>{{ $segment['text'] }}</textarea>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="search_{{ $index }}">Поисковый запрос (AI сгенерировал, можно редактировать):</label>
+                            <input type="text"
+                                   name="segments[{{ $index }}][search_query]"
+                                   id="search_{{ $index }}"
+                                   value="{{ $segment['search_query'] ?? '' }}"
+                                   placeholder="Редактировать запрос">
                         </div>
                     </div>
                 @endforeach
