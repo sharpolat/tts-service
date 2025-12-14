@@ -1,53 +1,68 @@
 #!/usr/bin/env python3
 """
 Автоматический поиск картинок для видео сегментов
-Использует полностью бесплатные источники без API ключей:
-1. DuckDuckGo Image Search (через библиотеку duckduckgo-search)
+Использует Bing Image Search (полностью бесплатный через scraping)
 """
 
 import sys
 import json
 import requests
-from urllib.parse import quote, unquote
+from urllib.parse import quote, urlencode
+from bs4 import BeautifulSoup
 import hashlib
 import re
-
-try:
-    from duckduckgo_search import DDGS
-    DDGS_AVAILABLE = True
-except ImportError:
-    DDGS_AVAILABLE = False
-    print("Warning: duckduckgo-search не установлена. Установите: pip install duckduckgo-search", file=sys.stderr)
+import time
 
 
-def search_duckduckgo(query, max_results=10):
+def search_bing_images(query, max_results=10):
     """
-    Поиск через DuckDuckGo Images - полностью бесплатно, без лимитов
+    Поиск через Bing Images - полностью бесплатно через scraping
     """
-    if not DDGS_AVAILABLE:
-        return []
-
     try:
-        with DDGS() as ddgs:
-            results = list(ddgs.images(
-                keywords=query,
-                max_results=max_results,
-                safesearch='off'
-            ))
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
+        }
 
-            images = []
-            for item in results:
-                images.append({
-                    'url': item.get('image', ''),
-                    'thumb': item.get('thumbnail', ''),
-                    'author': item.get('source', 'DuckDuckGo'),
-                    'source': 'duckduckgo'
-                })
+        params = {
+            'q': query,
+            'first': 1,
+            'count': max_results,
+            'qft': '+filterui:photo-photo',  # только фото
+        }
 
-            return images
+        url = f"https://www.bing.com/images/search?{urlencode(params)}"
+
+        response = requests.get(url, headers=headers, timeout=15)
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, 'html.parser')
+
+        images = []
+
+        # Ищем JSON с данными картинок
+        for a_tag in soup.find_all('a', class_='iusc'):
+            if len(images) >= max_results:
+                break
+
+            m_attr = a_tag.get('m')
+            if m_attr:
+                try:
+                    data = json.loads(m_attr)
+                    images.append({
+                        'url': data.get('murl', ''),
+                        'thumb': data.get('turl', ''),
+                        'author': 'Bing Images',
+                        'source': 'bing'
+                    })
+                except:
+                    continue
+
+        return images
 
     except Exception as e:
-        print(f"Ошибка поиска DuckDuckGo: {str(e)}", file=sys.stderr)
+        print(f"Ошибка поиска Bing: {str(e)}", file=sys.stderr)
         return []
 
 
@@ -150,9 +165,9 @@ def search_images(query, pexels_key=None, pixabay_key=None, per_source=10):
     """
     all_images = []
 
-    # DuckDuckGo - полностью бесплатно, без лимитов
-    ddg_results = search_duckduckgo(query, per_source)
-    all_images.extend(ddg_results)
+    # Bing Images - полностью бесплатно, без лимитов
+    bing_results = search_bing_images(query, per_source)
+    all_images.extend(bing_results)
 
     return all_images
 
