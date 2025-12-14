@@ -183,24 +183,11 @@
 
                         <input type="hidden" name="segments[{{ $loop->index }}][id]" value="{{ $segment->id }}">
 
-                        <div class="form-group" style="margin: 10px 0;">
-                            <label style="font-size: 10px; color: #666; display: block; margin-bottom: 5px;">
-                                <strong>AI запрос для поиска картинок:</strong>
-                            </label>
-                            <div style="display: flex; gap: 5px; align-items: center;">
-                                <input type="text"
-                                       name="segments[{{ $loop->index }}][search_query]"
-                                       value="{{ $segment->search_query }}"
-                                       style="flex: 1; padding: 5px; font-size: 11px; border: 2px inset #fff;"
-                                       placeholder="Например: anime boy watching war">
-                                <button type="button"
-                                        class="btn-regenerate-segment"
-                                        data-segment-id="{{ $segment->id }}"
-                                        style="padding: 5px 10px; font-size: 10px; white-space: nowrap;">
-                                    🔄 Найти
-                                </button>
-                            </div>
-                        </div>
+                        @if($segment->search_query)
+                            <p style="font-size: 10px; color: #666; margin: 10px 0;">
+                                <strong>AI запрос:</strong> {{ $segment->search_query }}
+                            </p>
+                        @endif
 
                         @if($segment->image_options && is_array($segment->image_options) && count($segment->image_options) > 0)
                             <div class="form-group">
@@ -239,25 +226,13 @@
                             </div>
                         @else
                             <p style="margin-top: 10px; font-size: 10px; color: #666;">
-                                Нажмите "АВТОПОИСК КАРТИНОК" чтобы найти варианты
+                                Картинки появятся после генерации видео
                             </p>
                         @endif
                     </div>
                 @endforeach
 
                 <button type="submit">Сохранить изменения</button>
-            </form>
-
-            <hr style="margin: 20px 0; border: 1px inset #fff;">
-
-            <form action="{{ route('video.autoSearchImages', $project->id) }}" method="POST" style="margin: 15px 0;">
-                @csrf
-                <button type="submit" class="btn-search" onclick="return confirm('Автоматически найти картинки для всех сегментов?');">
-                    🔍 АВТОПОИСК КАРТИНОК (Unsplash)
-                </button>
-                <p style="font-size: 10px; margin-top: 5px; color: #666;">
-                    Автоматически найдет и подставит картинки для всех сегментов на основе поисковых запросов
-                </p>
             </form>
 
             <hr style="margin: 20px 0; border: 1px inset #fff;">
@@ -307,55 +282,8 @@
             }
         }
 
-        // Обработчик кнопок "🔄 Найти" для отдельных сегментов
+        // Обработчик загрузки своих картинок
         document.addEventListener('DOMContentLoaded', function() {
-            document.querySelectorAll('.btn-regenerate-segment').forEach(button => {
-                button.addEventListener('click', function() {
-                    const segmentId = this.dataset.segmentId;
-                    const searchQueryInput = this.closest('.form-group').querySelector('input[type="text"]');
-                    const searchQuery = searchQueryInput.value.trim();
-
-                    if (!searchQuery) {
-                        alert('Введите поисковый запрос');
-                        return;
-                    }
-
-                    if (!confirm('Найти новые картинки для этого сегмента?')) {
-                        return;
-                    }
-
-                    this.disabled = true;
-                    this.textContent = '⏳ Ищу...';
-
-                    // Отправляем AJAX запрос
-                    fetch('{{ route('video.regenerateSegment', ['id' => $project->id, 'segmentId' => '__SEGMENT_ID__']) }}'.replace('__SEGMENT_ID__', segmentId), {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '{{ csrf_token() }}'
-                        },
-                        body: JSON.stringify({ search_query: searchQuery })
-                    })
-                    .then(response => response.json())
-                    .then(data => {
-                        if (data.success) {
-                            alert('Картинки найдены! Обновляю страницу...');
-                            window.location.reload();
-                        } else {
-                            alert('Ошибка: ' + (data.error || 'Неизвестная ошибка'));
-                            this.disabled = false;
-                            this.textContent = '🔄 Найти';
-                        }
-                    })
-                    .catch(error => {
-                        alert('Ошибка: ' + error.message);
-                        this.disabled = false;
-                        this.textContent = '🔄 Найти';
-                    });
-                });
-            });
-
-            // Обработчик загрузки своих картинок
             document.querySelectorAll('.custom-image-upload').forEach(input => {
                 const segmentIndex = input.dataset.segment;
                 const label = input.closest('label');

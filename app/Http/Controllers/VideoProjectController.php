@@ -96,15 +96,6 @@ class VideoProjectController extends Controller
     {
         $project = VideoProject::with(['videoSegments', 'ttsHistory'])->findOrFail($id);
 
-        // Проверяем что у всех сегментов есть картинки
-        $missingImages = $project->videoSegments->filter(function ($segment) {
-            return empty($segment->image_url);
-        });
-
-        if ($missingImages->count() > 0) {
-            return back()->withErrors(['error' => 'Не все сегменты имеют картинки!']);
-        }
-
         // Сохраняем качество
         $quality = request()->input('quality', '720p');
         $project->update([
@@ -112,99 +103,10 @@ class VideoProjectController extends Controller
             'quality' => $quality
         ]);
 
-        // Показываем пользователю что началась генерация
-        session()->flash('info', 'Генерация видео началась... Пожалуйста подождите 1-2 минуты.');
+        // Запускаем Job для полной генерации (AI + картинки + видео)
+        \App\Jobs\GenerateCompleteVideo::dispatch($project);
 
-        // Подготавливаем данные сегментов
-        $segmentsData = $project->videoSegments->map(function ($segment) {
-            return [
-                'image_url' => $segment->image_url,
-                'text' => $segment->text,
-                'order' => $segment->order,
-            ];
-        })->toArray();
-
-        // Путь к Python скрипту
-        $pythonScript = base_path('scripts/video_generator.py');
-        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
-        $audioFile = public_path($project->ttsHistory->audio_file);
-        $videoFile = public_path('videos/video_' . $project->id . '_' . time() . '.mp4');
-
-        // Создаем директорию для видео если не существует
-        if (!file_exists(public_path('videos'))) {
-            mkdir(public_path('videos'), 0777, true);
-        }
-
-        // Сначала умно разрезаем аудио
-        $audioSplitterScript = base_path('scripts/smart_audio_splitter.py');
-        $audioSegmentsDir = public_path('temp_audio_segments_' . $project->id);
-
-        $audioSplitResult = Process::timeout(120)->run([
-            $pythonBin,
-            $audioSplitterScript,
-            $audioFile,
-            count($segmentsData),
-            $audioSegmentsDir
-        ]);
-
-        if (!$audioSplitResult->successful()) {
-            $project->update(['status' => 'failed']);
-            return back()->withErrors(['error' => 'Ошибка разрезания аудио: ' . $audioSplitResult->errorOutput()]);
-        }
-
-        $audioSegments = json_decode($audioSplitResult->output(), true);
-
-        // Добавляем информацию об аудио сегментах к данным
-        foreach ($segmentsData as $index => &$segment) {
-            if (isset($audioSegments['segments'][$index])) {
-                $segment['audio_file'] = $audioSegments['segments'][$index]['file'];
-                $segment['duration'] = $audioSegments['segments'][$index]['duration'];
-            }
-        }
-
-        // Подготавливаем данные для video_generator.py (новый формат)
-        $qualityMap = [
-            '480p' => ['width' => 854, 'height' => 480],
-            '720p' => ['width' => 1280, 'height' => 720],
-            '1080p' => ['width' => 1920, 'height' => 1080],
-            '1440p' => ['width' => 2560, 'height' => 1440],
-        ];
-
-        $resolution = $qualityMap[$quality] ?? $qualityMap['720p'];
-
-        $videoData = [
-            'segments' => $segmentsData,
-            'output_file' => $videoFile,
-            'width' => $resolution['width'],
-            'height' => $resolution['height']
-        ];
-
-        // Вызов Python скрипта для генерации видео
-        $result = Process::timeout(600)->run([
-            $pythonBin,
-            $pythonScript,
-            json_encode($videoData)
-        ]);
-
-        if (!$result->successful()) {
-            $project->update(['status' => 'failed']);
-            return back()->withErrors(['error' => 'Ошибка генерации видео: ' . $result->errorOutput()]);
-        }
-
-        $output = json_decode($result->output(), true);
-
-        if (isset($output['error'])) {
-            $project->update(['status' => 'failed']);
-            return back()->withErrors(['error' => 'Python ошибка: ' . $output['error']]);
-        }
-
-        // Обновляем проект
-        $project->update([
-            'video_file' => 'videos/' . basename($videoFile),
-            'status' => 'completed'
-        ]);
-
-        return back()->with('success', 'Видео успешно сгенерировано!');
+        return back()->with('success', 'Генерация видео запущена! AI подберёт картинки и создаст видео. Обновите страницу через 3-5 минут.');
     }
 
     public function autoSearchImages($id)
