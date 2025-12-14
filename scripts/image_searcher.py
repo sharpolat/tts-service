@@ -2,57 +2,81 @@
 """
 Автоматический поиск картинок для видео сегментов
 Использует полностью бесплатные источники без API ключей:
-1. Wikimedia Commons (Wikipedia фото)
-2. Lorem Picsum (случайные фото)
+1. DuckDuckGo Image Search (без лимитов)
+2. Wikimedia Commons (запасной вариант)
 """
 
 import sys
 import json
 import requests
-from urllib.parse import quote
+from urllib.parse import quote, unquote
 import hashlib
+import re
 
 
-def search_wikimedia(query, per_page=5):
+def search_duckduckgo(query, max_results=10):
     """
-    Поиск через Wikimedia Commons (Wikipedia) - полностью бесплатно
+    Поиск через DuckDuckGo Images - полностью бесплатно, без лимитов
     """
     try:
-        url = "https://commons.wikimedia.org/w/api.php"
+        url = "https://duckduckgo.com/"
 
-        params = {
-            'action': 'query',
-            'format': 'json',
-            'generator': 'search',
-            'gsrsearch': query,
-            'gsrnamespace': '6',  # File namespace
-            'gsrlimit': per_page,
-            'prop': 'imageinfo',
-            'iiprop': 'url|size',
-            'iiurlwidth': '800'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+            'Accept-Language': 'en-US,en;q=0.5',
         }
 
-        response = requests.get(url, params=params, timeout=10)
-        response.raise_for_status()
+        # Получаем токен
+        session = requests.Session()
+        response = session.get(url, headers=headers, timeout=10)
 
+        # Поиск картинок
+        params = {
+            'q': query,
+            'iax': 'images',
+            'ia': 'images'
+        }
+
+        search_url = "https://duckduckgo.com/i.js"
+        params = {
+            'l': 'us-en',
+            'o': 'json',
+            'q': query,
+            'vqd': '',
+            'f': ',,,',
+            'p': '1'
+        }
+
+        # Получаем vqd токен
+        vqd_response = session.post('https://duckduckgo.com/', data={'q': query}, headers=headers, timeout=10)
+        vqd_match = re.search(r'vqd=([\d-]+)&', vqd_response.text)
+
+        if not vqd_match:
+            return []
+
+        vqd = vqd_match.group(1)
+        params['vqd'] = vqd
+
+        # Запрос картинок
+        response = session.get(search_url, params=params, headers=headers, timeout=10)
         data = response.json()
 
         images = []
-        if 'query' in data and 'pages' in data['query']:
-            for page_id, page in data['query']['pages'].items():
-                if 'imageinfo' in page and page['imageinfo']:
-                    img_info = page['imageinfo'][0]
+        if 'results' in data:
+            for item in data['results'][:max_results]:
+                if 'image' in item and 'thumbnail' in item:
                     images.append({
-                        'url': img_info.get('url', img_info.get('thumburl', '')),
-                        'thumb': img_info.get('thumburl', img_info.get('url', '')),
-                        'author': 'Wikimedia Commons',
-                        'source': 'wikimedia'
+                        'url': item['image'],
+                        'thumb': item['thumbnail'],
+                        'author': 'DuckDuckGo',
+                        'source': 'duckduckgo'
                     })
 
         return images
 
     except Exception as e:
-        print(f"Ошибка поиска Wikimedia: {str(e)}", file=sys.stderr)
+        print(f"Ошибка поиска DuckDuckGo: {str(e)}", file=sys.stderr)
         return []
 
 
@@ -155,9 +179,9 @@ def search_images(query, pexels_key=None, pixabay_key=None, per_source=10):
     """
     all_images = []
 
-    # Wikimedia Commons (Wikipedia) - полностью бесплатно, без лимитов
-    wikimedia_results = search_wikimedia(query, per_source)
-    all_images.extend(wikimedia_results)
+    # DuckDuckGo - полностью бесплатно, без лимитов
+    ddg_results = search_duckduckgo(query, per_source)
+    all_images.extend(ddg_results)
 
     return all_images
 
