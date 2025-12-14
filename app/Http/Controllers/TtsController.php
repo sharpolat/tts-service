@@ -31,7 +31,7 @@ class TtsController extends Controller
 
         // Путь к Python скрипту
         $pythonScript = base_path('scripts/tts_worker.py');
-        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
+        $pythonBin = '/usr/bin/python3';
         $outputDir = public_path('audio');
 
         // Вызов Python скрипта с рабочей директорией
