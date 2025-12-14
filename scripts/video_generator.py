@@ -9,7 +9,14 @@ import json
 import os
 from pydub import AudioSegment
 from pydub.silence import split_on_silence
-from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+
+# MoviePy 2.x imports
+try:
+    from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+except ImportError:
+    # Fallback для старой версии
+    from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+
 import requests
 from pathlib import Path
 
