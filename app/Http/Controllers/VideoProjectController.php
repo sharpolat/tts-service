@@ -20,36 +20,17 @@ class VideoProjectController extends Controller
     {
         $ttsHistory = TtsHistory::findOrFail($ttsHistoryId);
 
-        // Используем AI для умного разбиения текста
-        $pythonScript = base_path('scripts/ai_video_analyzer.py');
-        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
-
-        $result = Process::timeout(300)->run([
-            $pythonBin,
-            $pythonScript,
-            $ttsHistory->text,
-            'qwen2.5:14b'
-        ]);
+        // Простое разбиение по предложениям (AI слишком медленный для Cloudflare)
+        $sentences = preg_split('/(?<=[.!?])\s+/', $ttsHistory->text, -1, PREG_SPLIT_NO_EMPTY);
 
         $aiSegments = [];
-        if ($result->successful()) {
-            $output = json_decode($result->output(), true);
-            if (isset($output['segments'])) {
-                $aiSegments = $output['segments'];
-            }
-        }
-
-        // Fallback если AI не сработал
-        if (empty($aiSegments)) {
-            $sentences = preg_split('/(?<=[.!?])\s+/', $ttsHistory->text, -1, PREG_SPLIT_NO_EMPTY);
-            foreach ($sentences as $index => $sentence) {
-                $aiSegments[] = [
-                    'text' => trim($sentence),
-                    'search_query' => '',
-                    'tone' => 'neutral',
-                    'order' => $index
-                ];
-            }
+        foreach ($sentences as $index => $sentence) {
+            $aiSegments[] = [
+                'text' => trim($sentence),
+                'search_query' => '', // Пользователь заполнит вручную или через автопоиск
+                'tone' => 'neutral',
+                'order' => $index
+            ];
         }
 
         return view('video.create', compact('ttsHistory', 'aiSegments'));
