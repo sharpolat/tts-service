@@ -173,6 +173,7 @@
                 @method('PUT')
 
                 @foreach($project->videoSegments as $segment)
+                    @php($segmentIndex = $loop->index)
                     <div class="segment">
                         <div class="segment-header">Сегмент {{ $segment->order + 1 }}</div>
 
@@ -181,7 +182,7 @@
                             {{ $segment->text }}
                         </div>
 
-                        <input type="hidden" name="segments[{{ $loop->index }}][id]" value="{{ $segment->id }}">
+                        <input type="hidden" name="segments[{{ $segmentIndex }}][id]" value="{{ $segment->id }}">
 
                         @if($segment->search_query)
                             <p style="font-size: 10px; color: #666; margin: 10px 0;">
@@ -196,7 +197,7 @@
                                     @foreach($segment->image_options as $index => $option)
                                         <label style="cursor: pointer; border: 2px solid #999; padding: 5px; background: #fff;">
                                             <input type="radio"
-                                                   name="segments[{{ $loop->parent->index }}][image_url]"
+                                                   name="segments[{{ $segmentIndex }}][image_url]"
                                                    value="{{ $option['url'] }}"
                                                    {{ $segment->image_url === $option['url'] ? 'checked' : '' }}>
                                             <img src="{{ $option['thumb'] ?? $option['url'] }}"
@@ -208,19 +209,19 @@
                                     <!-- Своя картинка -->
                                     <label style="cursor: pointer; border: 2px dashed #999; padding: 5px; background: #f0f0f0; min-width: 160px; display: flex; flex-direction: column; align-items: center; justify-content: center;">
                                         <input type="radio"
-                                               name="segments[{{ $loop->parent->index }}][image_url]"
+                                               name="segments[{{ $segmentIndex }}][image_url]"
                                                value=""
                                                class="custom-image-radio"
-                                               data-segment="{{ $loop->parent->index }}">
+                                               data-segment="{{ $segmentIndex }}">
                                         <input type="file"
                                                accept="image/*"
                                                class="custom-image-upload"
-                                               data-segment="{{ $loop->parent->index }}"
+                                               data-segment="{{ $segmentIndex }}"
                                                style="display: none;">
                                         <div style="text-align: center; font-size: 10px; color: #666;">
                                             📤 Загрузить<br>свою картинку
                                         </div>
-                                        <img class="custom-image-preview" data-segment="{{ $loop->parent->index }}" style="display: none; max-width: 150px; max-height: 150px; margin-top: 5px;" alt="Своя картинка">
+                                        <img class="custom-image-preview" data-segment="{{ $segmentIndex }}" style="display: none; max-width: 150px; max-height: 150px; margin-top: 5px;" alt="Своя картинка">
                                     </label>
                                 </div>
                             </div>
