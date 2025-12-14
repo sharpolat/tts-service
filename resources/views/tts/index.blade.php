@@ -5,130 +5,120 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>TTS Генератор</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            padding: 20px;
+            font-family: "MS Sans Serif", Arial, sans-serif;
+            background: #008080;
+            margin: 20px;
         }
 
         .container {
-            max-width: 800px;
+            max-width: 600px;
             margin: 0 auto;
-            background: white;
-            border-radius: 20px;
-            padding: 40px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            background: #c0c0c0;
+            border: 2px outset #fff;
+            padding: 3px;
+        }
+
+        .title-bar {
+            background: linear-gradient(to right, #000080, #1084d0);
+            color: white;
+            padding: 3px 5px;
+            font-weight: bold;
+            font-size: 12px;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .content {
+            background: #c0c0c0;
+            padding: 10px;
         }
 
         h1 {
-            color: #333;
-            margin-bottom: 30px;
-            font-size: 32px;
+            font-size: 16px;
+            margin-bottom: 15px;
         }
 
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 15px;
         }
 
         label {
             display: block;
-            margin-bottom: 8px;
-            color: #555;
-            font-weight: 600;
+            margin-bottom: 3px;
+            font-size: 12px;
+        }
+
+        textarea, select {
+            width: 100%;
+            padding: 3px;
+            border: 2px inset #fff;
+            background: white;
+            font-family: "Courier New", monospace;
+            font-size: 12px;
         }
 
         textarea {
-            width: 100%;
-            padding: 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            min-height: 200px;
+            min-height: 150px;
             resize: vertical;
-            font-family: inherit;
-        }
-
-        textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            border: 2px solid #e0e0e0;
-            border-radius: 10px;
-            font-size: 16px;
-            background: white;
-        }
-
-        select:focus {
-            outline: none;
-            border-color: #667eea;
         }
 
         button {
-            width: 100%;
-            padding: 15px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 10px;
-            font-size: 18px;
-            font-weight: 600;
+            padding: 5px 20px;
+            border: 2px outset #fff;
+            background: #c0c0c0;
+            font-size: 12px;
             cursor: pointer;
-            transition: transform 0.2s;
-        }
-
-        button:hover {
-            transform: translateY(-2px);
+            font-family: "MS Sans Serif", Arial, sans-serif;
         }
 
         button:active {
-            transform: translateY(0);
+            border: 2px inset #fff;
         }
 
         .alert {
-            padding: 15px;
-            border-radius: 10px;
-            margin-bottom: 20px;
+            padding: 8px;
+            margin-bottom: 10px;
+            border: 2px solid;
+            font-size: 12px;
         }
 
         .alert-success {
-            background: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
+            background: #ffffe0;
+            border-color: #000;
         }
 
         .alert-error {
-            background: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
+            background: #ff0000;
+            color: white;
+            border-color: #800000;
         }
 
         .audio-player {
-            margin-top: 20px;
-            padding: 20px;
-            background: #f8f9fa;
-            border-radius: 10px;
+            margin-top: 15px;
+            padding: 10px;
+            border: 2px inset #fff;
+            background: #fff;
         }
 
         audio {
             width: 100%;
-            margin-top: 10px;
+        }
+
+        a {
+            color: #0000ff;
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>🎙️ TTS Генератор</h1>
+        <div class="title-bar">
+            <span>TTS Generator</span>
+            <span>_□X</span>
+        </div>
+        <div class="content">
+        <h1>TTS Генератор</h1>
 
         @if(session('success'))
             <div class="alert alert-success">
@@ -163,23 +153,22 @@
                 </select>
             </div>
 
-            <button type="submit">🎤 Сгенерировать аудио</button>
+            <button type="submit">Сгенерировать</button>
         </form>
 
         @if(session('audio_file'))
             <div class="audio-player">
-                <h3>✅ Результат:</h3>
+                <strong>Результат:</strong>
                 <audio controls>
                     <source src="{{ asset(session('audio_file')) }}" type="audio/mpeg">
                     Ваш браузер не поддерживает аудио.
                 </audio>
-                <p style="margin-top: 10px;">
-                    <a href="{{ asset(session('audio_file')) }}" download style="color: #667eea; text-decoration: none;">
-                        📥 Скачать аудио
-                    </a>
+                <p style="margin-top: 5px; font-size: 12px;">
+                    <a href="{{ asset(session('audio_file')) }}" download>Скачать аудио</a>
                 </p>
             </div>
         @endif
+        </div>
     </div>
 </body>
 </html>
