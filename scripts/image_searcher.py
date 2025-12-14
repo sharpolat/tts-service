@@ -149,20 +149,15 @@ def search_pixabay(query, api_key, per_page=3):
         return []
 
 
-def search_images(query, pexels_key=None, pixabay_key=None, per_source=5):
+def search_images(query, pexels_key=None, pixabay_key=None, per_source=10):
     """
-    Комбинированный поиск - приоритет бесплатным источникам
+    Поиск только релевантных картинок (без случайных фото)
     """
     all_images = []
 
-    # 1. Wikimedia Commons (Wikipedia) - полностью бесплатно, без лимитов
+    # Wikimedia Commons (Wikipedia) - полностью бесплатно, без лимитов
     wikimedia_results = search_wikimedia(query, per_source)
     all_images.extend(wikimedia_results)
-
-    # 2. Lorem Picsum - если Wikimedia не нашла достаточно
-    if len(all_images) < per_source:
-        picsum_results = get_picsum_images(query, per_source - len(all_images))
-        all_images.extend(picsum_results)
 
     return all_images
 
