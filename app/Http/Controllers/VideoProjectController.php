@@ -188,26 +188,51 @@ class VideoProjectController extends Controller
     {
         $project = VideoProject::with('videoSegments')->findOrFail($id);
 
-        // Подготавливаем сегменты для поиска
-        $segments = $project->videoSegments->map(function ($segment) {
+        // Сначала генерируем search_query через AI
+        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
+        $aiScript = base_path('scripts/ai_video_analyzer.py');
+
+        $aiResult = Process::timeout(300)->run([
+            $pythonBin,
+            $aiScript,
+            $project->ttsHistory->text,
+            'qwen2.5:14b'
+        ]);
+
+        $searchQueries = [];
+        if ($aiResult->successful()) {
+            $aiOutput = json_decode($aiResult->output(), true);
+            if (isset($aiOutput['segments'])) {
+                foreach ($aiOutput['segments'] as $seg) {
+                    $searchQueries[$seg['order']] = $seg['search_query'];
+                }
+            }
+        }
+
+        // Подготавливаем сегменты с AI-запросами
+        $segments = $project->videoSegments->map(function ($segment) use ($searchQueries) {
+            $searchQuery = $searchQueries[$segment->order] ?? '';
+
+            // Сохраняем search_query в БД
+            if ($searchQuery) {
+                $segment->update(['search_query' => $searchQuery]);
+            }
+
             return [
                 'text' => $segment->text,
-                'search_query' => $segment->search_query,
+                'search_query' => $searchQuery,
                 'order' => $segment->order,
             ];
         })->toArray();
 
         // Вызываем Python скрипт для поиска картинок
-        $pythonScript = base_path('scripts/image_searcher.py');
-        $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
-
-        // API ключи из .env
+        $imageScript = base_path('scripts/image_searcher.py');
         $pexelsKey = env('PEXELS_API_KEY', null);
         $pixabayKey = env('PIXABAY_API_KEY', null);
 
         $result = Process::timeout(120)->run([
             $pythonBin,
-            $pythonScript,
+            $imageScript,
             json_encode($segments),
             $pexelsKey,
             $pixabayKey
@@ -232,7 +257,7 @@ class VideoProjectController extends Controller
             }
         }
 
-        return back()->with('success', 'Картинки автоматически найдены и добавлены!');
+        return back()->with('success', 'AI сгенерировал запросы и нашёл картинки!');
     }
 
     public function delete($id)
