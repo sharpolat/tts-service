@@ -2,8 +2,7 @@
 """
 Автоматический поиск картинок для видео сегментов
 Использует полностью бесплатные источники без API ключей:
-1. DuckDuckGo Image Search (без лимитов)
-2. Wikimedia Commons (запасной вариант)
+1. DuckDuckGo Image Search (через библиотеку duckduckgo-search)
 """
 
 import sys
@@ -13,67 +12,39 @@ from urllib.parse import quote, unquote
 import hashlib
 import re
 
+try:
+    from duckduckgo_search import DDGS
+    DDGS_AVAILABLE = True
+except ImportError:
+    DDGS_AVAILABLE = False
+    print("Warning: duckduckgo-search не установлена. Установите: pip install duckduckgo-search", file=sys.stderr)
+
 
 def search_duckduckgo(query, max_results=10):
     """
     Поиск через DuckDuckGo Images - полностью бесплатно, без лимитов
     """
+    if not DDGS_AVAILABLE:
+        return []
+
     try:
-        url = "https://duckduckgo.com/"
+        with DDGS() as ddgs:
+            results = list(ddgs.images(
+                keywords=query,
+                max_results=max_results,
+                safesearch='off'
+            ))
 
-        headers = {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-        }
+            images = []
+            for item in results:
+                images.append({
+                    'url': item.get('image', ''),
+                    'thumb': item.get('thumbnail', ''),
+                    'author': item.get('source', 'DuckDuckGo'),
+                    'source': 'duckduckgo'
+                })
 
-        # Получаем токен
-        session = requests.Session()
-        response = session.get(url, headers=headers, timeout=10)
-
-        # Поиск картинок
-        params = {
-            'q': query,
-            'iax': 'images',
-            'ia': 'images'
-        }
-
-        search_url = "https://duckduckgo.com/i.js"
-        params = {
-            'l': 'us-en',
-            'o': 'json',
-            'q': query,
-            'vqd': '',
-            'f': ',,,',
-            'p': '1'
-        }
-
-        # Получаем vqd токен
-        vqd_response = session.post('https://duckduckgo.com/', data={'q': query}, headers=headers, timeout=10)
-        vqd_match = re.search(r'vqd=([\d-]+)&', vqd_response.text)
-
-        if not vqd_match:
-            return []
-
-        vqd = vqd_match.group(1)
-        params['vqd'] = vqd
-
-        # Запрос картинок
-        response = session.get(search_url, params=params, headers=headers, timeout=10)
-        data = response.json()
-
-        images = []
-        if 'results' in data:
-            for item in data['results'][:max_results]:
-                if 'image' in item and 'thumbnail' in item:
-                    images.append({
-                        'url': item['image'],
-                        'thumb': item['thumbnail'],
-                        'author': 'DuckDuckGo',
-                        'source': 'duckduckgo'
-                    })
-
-        return images
+            return images
 
     except Exception as e:
         print(f"Ошибка поиска DuckDuckGo: {str(e)}", file=sys.stderr)
