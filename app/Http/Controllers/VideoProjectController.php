@@ -220,10 +220,16 @@ class VideoProjectController extends Controller
         $pythonScript = base_path('scripts/image_searcher.py');
         $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
 
+        // API ключи из .env
+        $pexelsKey = env('PEXELS_API_KEY', null);
+        $pixabayKey = env('PIXABAY_API_KEY', null);
+
         $result = Process::timeout(120)->run([
             $pythonBin,
             $pythonScript,
-            json_encode($segments)
+            json_encode($segments),
+            $pexelsKey,
+            $pixabayKey
         ]);
 
         if (!$result->successful()) {

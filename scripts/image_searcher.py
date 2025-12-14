@@ -124,19 +124,20 @@ def search_images(query, pexels_key=None, pixabay_key=None, per_source=3):
     """
     all_images = []
 
-    # Поиск в Unsplash (всегда доступен)
-    unsplash_results = search_unsplash(query, per_source)
-    all_images.extend(unsplash_results)
+    # Поиск в Pixabay если есть ключ (приоритет - более стабильный)
+    if pixabay_key:
+        pixabay_results = search_pixabay(query, pixabay_key, per_source)
+        all_images.extend(pixabay_results)
 
     # Поиск в Pexels если есть ключ
     if pexels_key:
         pexels_results = search_pexels(query, pexels_key, per_source)
         all_images.extend(pexels_results)
 
-    # Поиск в Pixabay если есть ключ
-    if pixabay_key:
-        pixabay_results = search_pixabay(query, pixabay_key, per_source)
-        all_images.extend(pixabay_results)
+    # Поиск в Unsplash только если нет других результатов
+    if not all_images:
+        unsplash_results = search_unsplash(query, per_source)
+        all_images.extend(unsplash_results)
 
     return all_images
 
