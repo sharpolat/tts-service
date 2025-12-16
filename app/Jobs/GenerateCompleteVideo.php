@@ -85,9 +85,20 @@ class GenerateCompleteVideo implements ShouldQueue
                         if ($segment && isset($resultData['images'])) {
                             $options = array_slice($resultData['images'], 0, 3);
 
+                            // Проверяем, была ли картинка выбрана вручную
+                            $currentImageUrl = $segment->image_url;
+                            $oldOptions = $segment->image_options ?? [];
+                            $firstOldOption = $oldOptions[0]['url'] ?? null;
+
+                            // Если текущий image_url:
+                            // 1. Это base64 (кастомная загрузка) - не трогаем
+                            // 2. Не совпадает с первой картинкой из старых options - пользователь выбрал вручную
+                            $isCustomUpload = $currentImageUrl && str_starts_with($currentImageUrl, 'data:image');
+                            $manuallySelected = $currentImageUrl && $currentImageUrl !== $firstOldOption;
+
                             $segment->update([
                                 'image_options' => $options,
-                                'image_url' => $options[0]['url'] ?? null
+                                'image_url' => ($isCustomUpload || $manuallySelected) ? $currentImageUrl : ($options[0]['url'] ?? null)
                             ]);
                         }
                     }
