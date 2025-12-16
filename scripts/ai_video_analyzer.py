@@ -23,20 +23,33 @@ def analyze_with_ollama(text, model="qwen2.5:14b"):
 
 ПРАВИЛА:
 1. "text" = ТОЧНАЯ цитата из оригинала (1-3 предложения, сохраняй ВСЕ слова)
-2. "search_query" = КОНКРЕТНОЕ детальное визуальное описание на английском для поиска ИСТОРИЧЕСКОЙ/РЕАЛЬНОЙ фотографии
-   - Указывай КОНКРЕТНЫЕ места, события, объекты (не абстракции!)
-   - Добавляй временной период, локацию, детали
-   - Примеры:
+2. "search_query" = КОНКРЕТНОЕ детальное визуальное описание на английском для поиска изображения
+   - Определи тип контента: история, аниме, наука, природа и т.д.
+   - Указывай КОНКРЕТНЫЕ элементы (не абстракции!)
+   - Добавляй детали: имена персонажей, места, время, стиль
+
+   Примеры для ИСТОРИИ:
      ПЛОХО: "people in fire ring" → ХОРОШО: "Khatyn village burning 1943 Belarus World War II historical photo"
-     ПЛОХО: "symbol of war" → ХОРОШО: "Khatyn memorial monument Belarus white statues historical"
-     ПЛОХО: "village in ruins" → ХОРОШО: "burned Belarusian village houses 1940s World War II documentary photo"
+     ПЛОХО: "symbol of war" → ХОРОШО: "Khatyn memorial monument Belarus white statues"
+     ПЛОХО: "village in ruins" → ХОРОШО: "burned Belarusian village houses 1940s World War II documentary"
+
+   Примеры для АНИМЕ:
+     ПЛОХО: "sad boy" → ХОРОШО: "anime boy crying tears close-up emotional scene manga style"
+     ПЛОХО: "fight scene" → ХОРОШО: "anime battle scene dynamic action slash effects shonen style"
+     ПЛОХО: "school" → ХОРОШО: "anime high school classroom sunset window light slice of life"
+
+   Примеры для НАУКИ/МЕДИЦИНЫ:
+     ПЛОХО: "medical experiment" → ХОРОШО: "Unit 731 laboratory equipment medical instruments historical photo 1940s"
+     ПЛОХО: "laboratory" → ХОРОШО: "Japanese military medical laboratory Unit 731 Harbin building exterior historical"
+     ПЛОХО: "victims" → ХОРОШО: "prisoners frostbite experiment medical war crimes Unit 731 historical documentation"
+
 3. Покрой ВЕСЬ текст без пропусков
 
 Формат JSON:
 [
   {{
     "text": "точная цитата из текста",
-    "search_query": "detailed specific historical visual description in english",
+    "search_query": "detailed specific visual description in english with context and style",
     "tone": "neutral",
     "order": 0
   }}
