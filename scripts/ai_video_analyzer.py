@@ -23,14 +23,20 @@ def analyze_with_ollama(text, model="qwen2.5:14b"):
 
 ПРАВИЛА:
 1. "text" = ТОЧНАЯ цитата из оригинала (1-3 предложения, сохраняй ВСЕ слова)
-2. "search_query" = визуальное описание для картинки на английском
+2. "search_query" = КОНКРЕТНОЕ детальное визуальное описание на английском для поиска ИСТОРИЧЕСКОЙ/РЕАЛЬНОЙ фотографии
+   - Указывай КОНКРЕТНЫЕ места, события, объекты (не абстракции!)
+   - Добавляй временной период, локацию, детали
+   - Примеры:
+     ПЛОХО: "people in fire ring" → ХОРОШО: "Khatyn village burning 1943 Belarus World War II historical photo"
+     ПЛОХО: "symbol of war" → ХОРОШО: "Khatyn memorial monument Belarus white statues historical"
+     ПЛОХО: "village in ruins" → ХОРОШО: "burned Belarusian village houses 1940s World War II documentary photo"
 3. Покрой ВЕСЬ текст без пропусков
 
 Формат JSON:
 [
   {{
     "text": "точная цитата из текста",
-    "search_query": "english visual description",
+    "search_query": "detailed specific historical visual description in english",
     "tone": "neutral",
     "order": 0
   }}
