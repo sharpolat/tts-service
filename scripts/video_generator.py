@@ -13,10 +13,10 @@ from pydub.silence import split_on_silence
 
 # MoviePy 2.x imports
 try:
-    from moviepy import ImageClip, AudioFileClip, concatenate_videoclips
+    from moviepy import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip
 except ImportError:
     # Fallback для старой версии
-    from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips
+    from moviepy.editor import ImageClip, AudioFileClip, concatenate_videoclips, TextClip, CompositeVideoClip
 
 import requests
 from pathlib import Path
@@ -182,7 +182,36 @@ def create_video_from_segments(data):
             target_height = data.get('height', 720)
             image_clip = image_clip.resized(width=target_width, height=target_height)
 
-            video_clip = image_clip.with_audio(audio_clip)
+            # Добавляем текст субтитров
+            text = segment.get('text', '')
+            if text:
+                try:
+                    # Создаем текстовый клип
+                    txt_clip = TextClip(
+                        text=text,
+                        font='Arial',
+                        fontsize=int(target_height * 0.04),  # 4% от высоты видео
+                        color='white',
+                        stroke_color='black',
+                        stroke_width=2,
+                        method='caption',
+                        size=(int(target_width * 0.9), None),  # 90% ширины экрана
+                        text_align='center'
+                    )
+                    txt_clip = txt_clip.with_duration(segment['duration'])
+
+                    # Позиционируем текст внизу экрана
+                    txt_clip = txt_clip.with_position(('center', target_height - int(target_height * 0.15)))
+
+                    # Накладываем текст на видео
+                    video_clip = CompositeVideoClip([image_clip, txt_clip])
+                except Exception as text_error:
+                    print(f"Не удалось добавить текст для сегмента {segment['order']}: {text_error}", file=sys.stderr)
+                    video_clip = image_clip
+            else:
+                video_clip = image_clip
+
+            video_clip = video_clip.with_audio(audio_clip)
             video_clips.append(video_clip)
         except Exception as e:
             print(f"Ошибка создания клипа {segment['order']}: {e}", file=sys.stderr)
