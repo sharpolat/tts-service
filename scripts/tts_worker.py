@@ -8,57 +8,125 @@ import asyncio
 import edge_tts
 import json
 import re
+from pydub import AudioSegment
+import os
+import tempfile
 
-def process_stress_marks(text):
+async def generate_tts_segment(text, rate="+10%", pitch="+0Hz", volume="+0%"):
+    """Генерация одного сегмента TTS"""
+    temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp3').name
+
+    # Формируем строку с параметрами prosody
+    prosody_parts = []
+    if rate != "+0%":
+        prosody_parts.append(f"rate={rate}")
+    if pitch != "+0Hz":
+        prosody_parts.append(f"pitch={pitch}")
+    if volume != "+0%":
+        prosody_parts.append(f"volume={volume}")
+
+    communicate = edge_tts.Communicate(text, voice="ru-RU-DmitryNeural")
+
+    # Применяем параметры через SubMaker если нужно
+    if prosody_parts:
+        communicate = edge_tts.Communicate(
+            text,
+            voice="ru-RU-DmitryNeural",
+            rate=rate,
+            volume=volume,
+            pitch=pitch
+        )
+
+    await communicate.save(temp_file)
+    return temp_file
+
+def parse_stress_text(text):
     """
-    Обрабатывает пользовательские маркеры ударений в тексте
+    Разбивает текст на части с учётом ударений
 
-    Формат: {са}сори → сА-сори (заглавная гласная с дефисом)
-
-    Простой подход: EdgeTTS часто делает ударение на заглавные буквы,
-    а дефис добавляет небольшую паузу для разделения.
+    Формат: {са}сори → [("са", True), ("сори", False)]
+    True = ударная часть, False = обычная часть
     """
+    parts = []
+    pattern = r'\{([^\}]+)\}'
 
-    # Паттерн для поиска {текст}остаток
-    pattern = r'\{([^\}]+)\}(\S*)'
+    last_end = 0
+    for match in re.finditer(pattern, text):
+        # Текст до скобок
+        if match.start() > last_end:
+            before = text[last_end:match.start()]
+            if before.strip():
+                parts.append((before, False))
 
-    def add_stress(match):
-        stressed_part = match.group(1)  # "са"
-        rest = match.group(2)           # "сори"
+        # Ударная часть в скобках
+        parts.append((match.group(1), True))
+        last_end = match.end()
 
-        # Находим последнюю гласную в ударной части и делаем её заглавной
-        vowels = 'аеёиоуыэюя'
-        vowels_upper = 'АЕЁИОУЫЭЮЯ'
+    # Остаток текста после последних скобок
+    if last_end < len(text):
+        rest = text[last_end:]
+        if rest.strip():
+            parts.append((rest, False))
 
-        result = stressed_part
-        for i in range(len(stressed_part) - 1, -1, -1):
-            if stressed_part[i] in vowels:
-                # Делаем гласную заглавной
-                result = stressed_part[:i] + stressed_part[i].upper() + stressed_part[i+1:]
-                break
+    # Если нет скобок, весь текст обычный
+    if not parts:
+        parts = [(text, False)]
 
-        # Добавляем дефис для паузы если есть остаток слова
-        if rest:
-            return result + '-' + rest
-        return result
-
-    # Применяем замену
-    processed = re.sub(pattern, add_stress, text)
-
-    return processed
+    return parts
 
 async def generate_tts(text, rate="+10%"):
-    """Генерация TTS через EdgeTTS"""
+    """Генерация TTS через EdgeTTS с поддержкой ударений"""
 
-    # Обрабатываем маркеры ударений
-    processed_text = process_stress_marks(text)
+    # Проверяем наличие маркеров ударений
+    if '{' not in text:
+        # Нет ударений - обычная генерация
+        output_file = f"output_{hash(text)}.mp3"
+        communicate = edge_tts.Communicate(text, voice="ru-RU-DmitryNeural", rate=rate)
+        await communicate.save(output_file)
+        return output_file
 
-    output_file = f"output_{hash(text)}.mp3"
+    # Есть ударения - разбиваем и склеиваем
+    parts = parse_stress_text(text)
+    temp_files = []
 
-    communicate = edge_tts.Communicate(processed_text, voice="ru-RU-DmitryNeural", rate=rate)
-    await communicate.save(output_file)
+    try:
+        for part_text, is_stressed in parts:
+            if is_stressed:
+                # Ударный слог - выше pitch и громче
+                temp_file = await generate_tts_segment(
+                    part_text,
+                    rate=rate,
+                    pitch="+50Hz",  # Выше тон
+                    volume="+20%"   # Громче
+                )
+            else:
+                # Обычный текст
+                temp_file = await generate_tts_segment(part_text, rate=rate)
 
-    return output_file
+            temp_files.append(temp_file)
+
+        # Склеиваем все части
+        combined = AudioSegment.empty()
+        for temp_file in temp_files:
+            audio = AudioSegment.from_mp3(temp_file)
+            combined += audio
+
+        # Сохраняем результат
+        output_file = f"output_{hash(text)}.mp3"
+        combined.export(output_file, format="mp3")
+
+        # Удаляем временные файлы
+        for temp_file in temp_files:
+            os.unlink(temp_file)
+
+        return output_file
+
+    except Exception as e:
+        # Очищаем временные файлы при ошибке
+        for temp_file in temp_files:
+            if os.path.exists(temp_file):
+                os.unlink(temp_file)
+        raise e
 
 if __name__ == "__main__":
     if len(sys.argv) < 2:
