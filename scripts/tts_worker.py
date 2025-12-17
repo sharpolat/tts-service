@@ -13,25 +13,37 @@ def process_stress_marks(text):
     """
     Обрабатывает пользовательские маркеры ударений в тексте
 
-    Формат: {са}сори → <emphasis level="strong">са</emphasis>сори
+    Формат: {са}сори → сА-сори (заглавная гласная с дефисом)
 
-    EdgeTTS использует SSML теги для управления произношением.
-    Тег <emphasis> усиливает ударение на нужном слоге.
+    Простой подход: EdgeTTS часто делает ударение на заглавные буквы,
+    а дефис добавляет небольшую паузу для разделения.
     """
 
-    # Паттерн для поиска {текст}
-    pattern = r'\{([^\}]+)\}'
+    # Паттерн для поиска {текст}остаток
+    pattern = r'\{([^\}]+)\}(\S*)'
 
-    def add_emphasis(match):
-        stressed_text = match.group(1)
-        return f'<emphasis level="strong">{stressed_text}</emphasis>'
+    def add_stress(match):
+        stressed_part = match.group(1)  # "са"
+        rest = match.group(2)           # "сори"
+
+        # Находим последнюю гласную в ударной части и делаем её заглавной
+        vowels = 'аеёиоуыэюя'
+        vowels_upper = 'АЕЁИОУЫЭЮЯ'
+
+        result = stressed_part
+        for i in range(len(stressed_part) - 1, -1, -1):
+            if stressed_part[i] in vowels:
+                # Делаем гласную заглавной
+                result = stressed_part[:i] + stressed_part[i].upper() + stressed_part[i+1:]
+                break
+
+        # Добавляем дефис для паузы если есть остаток слова
+        if rest:
+            return result + '-' + rest
+        return result
 
     # Применяем замену
-    processed = re.sub(pattern, add_emphasis, text)
-
-    # Оборачиваем весь текст в SSML если есть теги emphasis
-    if '<emphasis' in processed:
-        processed = f'<speak version="1.0" xmlns="http://www.w3.org/2001/10/synthesis" xml:lang="ru-RU">{processed}</speak>'
+    processed = re.sub(pattern, add_stress, text)
 
     return processed
 
