@@ -39,13 +39,18 @@ class TtsController extends Controller
         $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
         $outputDir = public_path('audio');
 
-        // Вызов Python скрипта с рабочей директорией
-        $result = Process::path($outputDir)->run([
-            $pythonBin,
-            $pythonScript,
-            $text,
-            $speed
-        ]);
+        // Вызов Python скрипта с рабочей директорией и переменными окружения
+        $result = Process::path($outputDir)
+            ->env([
+                'PATH' => '/usr/local/bin:/usr/bin:/bin',
+                'PYTHONUNBUFFERED' => '1'
+            ])
+            ->run([
+                $pythonBin,
+                $pythonScript,
+                $text,
+                $speed
+            ]);
 
         if (!$result->successful()) {
             return back()->withErrors(['error' => 'Ошибка генерации аудио: ' . $result->errorOutput()]);
@@ -97,13 +102,18 @@ class TtsController extends Controller
         $pythonBin = '/home/shapo/anime-stories/venv/bin/python3';
         $outputDir = public_path('audio');
 
-        // Вызов Python скрипта с рабочей директорией
-        $result = Process::path($outputDir)->run([
-            $pythonBin,
-            $pythonScript,
-            $text,
-            $speed
-        ]);
+        // Вызов Python скрипта с рабочей директорией и переменными окружения
+        $result = Process::path($outputDir)
+            ->env([
+                'PATH' => '/usr/local/bin:/usr/bin:/bin',
+                'PYTHONUNBUFFERED' => '1'
+            ])
+            ->run([
+                $pythonBin,
+                $pythonScript,
+                $text,
+                $speed
+            ]);
 
         if (!$result->successful()) {
             return back()->withErrors(['error' => 'Ошибка генерации аудио: ' . $result->errorOutput()]);
